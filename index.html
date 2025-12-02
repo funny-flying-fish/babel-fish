@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Converter</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #000;
+            color: #fff;
+        }
+        .section {
+            background: #1a1a1a;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            border: 1px solid #333;
+        }
+        .section h2 {
+            font-size: 1.1rem;
+            margin: 0 0 15px 0;
+            color: #fff;
+            font-weight: 600;
+        }
+        .form-row {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+        input[type="file"] {
+            color: #fff;
+        }
+        input[type="file"]::file-selector-button {
+            background: #444;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        input[type="file"]::file-selector-button:hover {
+            background: #555;
+        }
+        label {
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        select {
+            padding: 6px 10px;
+            border: 1px solid #444;
+            border-radius: 3px;
+            background: #333;
+            color: #fff;
+        }
+        button {
+            background: #0066cc;
+            color: #fff;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+        button:hover {
+            background: #0077ee;
+        }
+        button:disabled {
+            background: #444;
+            color: #666;
+            cursor: not-allowed;
+        }
+        .download-area {
+            margin-top: 12px;
+        }
+        .download-area a {
+            color: #4da6ff;
+        }
+        .error {
+            color: #ff6b6b;
+            margin-top: 10px;
+        }
+        .note {
+            color: #666;
+            font-size: 0.85rem;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="section">
+        <h2>XLSX → TXT</h2>
+        <div class="form-row">
+            <input type="file" id="xlsxInput" accept=".xlsx">
+            <label for="xlsxOutputEncoding">Encoding:</label>
+            <select id="xlsxOutputEncoding">
+                <option value="macintosh" selected>Mac Roman</option>
+                <option value="utf-8">UTF-8</option>
+                <option value="windows-1252">Windows-1252</option>
+            </select>
+            <button id="xlsxToTxtBtn" disabled>Convert</button>
+        </div>
+        <div class="download-area" id="txtDownload"></div>
+        <div class="error" id="xlsxError"></div>
+    </div>
+
+    <div class="section">
+        <h2>TXT → XLSX</h2>
+        <div class="form-row">
+            <input type="file" id="txtInput" accept=".txt">
+            <label for="txtInputEncoding">Encoding:</label>
+            <select id="txtInputEncoding">
+                <option value="macintosh" selected>Mac Roman</option>
+                <option value="utf-8">UTF-8</option>
+                <option value="windows-1252">Windows-1252</option>
+            </select>
+            <button id="txtToXlsxBtn" disabled>Convert</button>
+        </div>
+        <div class="download-area" id="xlsxDownload"></div>
+        <div class="error" id="txtError"></div>
+    </div>
+
+    <p class="note">Default encoding is Mac Roman. If you notice character issues in the output, please try a different encoding option.</p>
+
+    <script>
+        // File references
+        let xlsxFile = null;
+        let txtFile = null;
+
+        // Elements
+        const xlsxInput = document.getElementById('xlsxInput');
+        const txtInput = document.getElementById('txtInput');
+        const xlsxToTxtBtn = document.getElementById('xlsxToTxtBtn');
+        const txtToXlsxBtn = document.getElementById('txtToXlsxBtn');
+        const txtDownload = document.getElementById('txtDownload');
+        const xlsxDownload = document.getElementById('xlsxDownload');
+        const xlsxError = document.getElementById('xlsxError');
+        const txtError = document.getElementById('txtError');
+        const xlsxOutputEncoding = document.getElementById('xlsxOutputEncoding');
+        const txtInputEncoding = document.getElementById('txtInputEncoding');
+
+        // Event listeners
+        xlsxInput.addEventListener('change', (e) => {
+            xlsxFile = e.target.files[0];
+            xlsxToTxtBtn.disabled = !xlsxFile;
+            txtDownload.innerHTML = '';
+            xlsxError.textContent = '';
+        });
+
+        txtInput.addEventListener('change', (e) => {
+            txtFile = e.target.files[0];
+            txtToXlsxBtn.disabled = !txtFile;
+            xlsxDownload.innerHTML = '';
+            txtError.textContent = '';
+        });
+
+        xlsxToTxtBtn.addEventListener('click', convertXlsxToTxt);
+        txtToXlsxBtn.addEventListener('click', convertTxtToXlsx);
+
+        // Get current date in M/D/YY format
+        function getCurrentDate() {
+            const now = new Date();
+            const month = now.getMonth() + 1;
+            const day = now.getDate();
+            const year = String(now.getFullYear()).slice(-2);
+            return `${month}/${day}/${year}`;
+        }
+
+        // Parse XLSX file and return 2D array
+        function parseXLSX(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                        resolve(jsonData);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Parse TXT file with specified encoding and return 2D array
+        function parseTXT(file, encoding) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const buffer = e.target.result;
+                        const decoder = new TextDecoder(encoding);
+                        const text = decoder.decode(buffer);
+                        // Handle both \r\n (Windows) and \n (Unix) line endings
+                        const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+                        const data = lines.map(line => line.split('\t'));
+                        resolve(data);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // Transpose 2D array
+        function transpose(matrix) {
+            if (matrix.length === 0) return [];
+            const rows = matrix.length;
+            const cols = Math.max(...matrix.map(row => row.length));
+            const result = [];
+            for (let c = 0; c < cols; c++) {
+                result[c] = [];
+                for (let r = 0; r < rows; r++) {
+                    result[c][r] = matrix[r][c] !== undefined ? matrix[r][c] : '';
+                }
+            }
+            return result;
+        }
+
+        // Convert XLSX data to TXT format
+        function xlsxToTxt(data) {
+            // XLSX: rows = variables (Label1, Label2...), cols = languages
+            // TXT: rows = languages, cols = variables + Date column
+            
+            // Transpose: now rows = languages, cols = variables
+            const transposed = transpose(data);
+            
+            // Add Date column after first column
+            const currentDate = getCurrentDate();
+            const result = transposed.map((row, index) => {
+                const newRow = [...row];
+                // Insert "Date" header or date value after first column
+                if (index === 0) {
+                    newRow.splice(1, 0, 'Date');
+                } else {
+                    newRow.splice(1, 0, currentDate);
+                }
+                return newRow;
+            });
+            
+            // Convert to tab-separated string
+            return result.map(row => row.join('\t')).join('\n');
+        }
+
+        // Convert TXT data to XLSX format
+        function txtToXlsx(data) {
+            // TXT: rows = languages, cols = variables + Date column
+            // XLSX: rows = variables (without Date), cols = languages
+            
+            // Remove Date column (index 1)
+            const withoutDate = data.map(row => {
+                const newRow = [...row];
+                newRow.splice(1, 1);
+                return newRow;
+            });
+            
+            // Transpose: now rows = variables, cols = languages
+            return transpose(withoutDate);
+        }
+
+        // Mac Roman encoding table: Unicode codepoint -> Mac Roman byte
+        const macRomanFromUnicode = {
+            0x00C4: 0x80, 0x00C5: 0x81, 0x00C7: 0x82, 0x00C9: 0x83, 0x00D1: 0x84,
+            0x00D6: 0x85, 0x00DC: 0x86, 0x00E1: 0x87, 0x00E0: 0x88, 0x00E2: 0x89,
+            0x00E4: 0x8A, 0x00E3: 0x8B, 0x00E5: 0x8C, 0x00E7: 0x8D, 0x00E9: 0x8E,
+            0x00E8: 0x8F, 0x00EA: 0x90, 0x00EB: 0x91, 0x00ED: 0x92, 0x00EC: 0x93,
+            0x00EE: 0x94, 0x00EF: 0x95, 0x00F1: 0x96, 0x00F3: 0x97, 0x00F2: 0x98,
+            0x00F4: 0x99, 0x00F6: 0x9A, 0x00F5: 0x9B, 0x00FA: 0x9C, 0x00F9: 0x9D,
+            0x00FB: 0x9E, 0x00FC: 0x9F, 0x2020: 0xA0, 0x00B0: 0xA1, 0x00A2: 0xA2,
+            0x00A3: 0xA3, 0x00A7: 0xA4, 0x2022: 0xA5, 0x00B6: 0xA6, 0x00DF: 0xA7,
+            0x00AE: 0xA8, 0x00A9: 0xA9, 0x2122: 0xAA, 0x00B4: 0xAB, 0x00A8: 0xAC,
+            0x2260: 0xAD, 0x00C6: 0xAE, 0x00D8: 0xAF, 0x221E: 0xB0, 0x00B1: 0xB1,
+            0x2264: 0xB2, 0x2265: 0xB3, 0x00A5: 0xB4, 0x00B5: 0xB5, 0x2202: 0xB6,
+            0x2211: 0xB7, 0x220F: 0xB8, 0x03C0: 0xB9, 0x222B: 0xBA, 0x00AA: 0xBB,
+            0x00BA: 0xBC, 0x03A9: 0xBD, 0x00E6: 0xBE, 0x00F8: 0xBF, 0x00BF: 0xC0,
+            0x00A1: 0xC1, 0x00AC: 0xC2, 0x221A: 0xC3, 0x0192: 0xC4, 0x2248: 0xC5,
+            0x2206: 0xC6, 0x00AB: 0xC7, 0x00BB: 0xC8, 0x2026: 0xC9, 0x00A0: 0xCA,
+            0x00C0: 0xCB, 0x00C3: 0xCC, 0x00D5: 0xCD, 0x0152: 0xCE, 0x0153: 0xCF,
+            0x2013: 0xD0, 0x2014: 0xD1, 0x201C: 0xD2, 0x201D: 0xD3, 0x2018: 0xD4,
+            0x2019: 0xD5, 0x00F7: 0xD6, 0x25CA: 0xD7, 0x00FF: 0xD8, 0x0178: 0xD9,
+            0x2044: 0xDA, 0x20AC: 0xDB, 0x2039: 0xDC, 0x203A: 0xDD, 0xFB01: 0xDE,
+            0xFB02: 0xDF, 0x2021: 0xE0, 0x00B7: 0xE1, 0x201A: 0xE2, 0x201E: 0xE3,
+            0x2030: 0xE4, 0x00C2: 0xE5, 0x00CA: 0xE6, 0x00C1: 0xE7, 0x00CB: 0xE8,
+            0x00C8: 0xE9, 0x00CD: 0xEA, 0x00CE: 0xEB, 0x00CF: 0xEC, 0x00CC: 0xED,
+            0x00D3: 0xEE, 0x00D4: 0xEF, 0xF8FF: 0xF0, 0x00D2: 0xF1, 0x00DA: 0xF2,
+            0x00DB: 0xF3, 0x00D9: 0xF4, 0x0131: 0xF5, 0x02C6: 0xF6, 0x02DC: 0xF7,
+            0x00AF: 0xF8, 0x02D8: 0xF9, 0x02D9: 0xFA, 0x02DA: 0xFB, 0x00B8: 0xFC,
+            0x02DD: 0xFD, 0x02DB: 0xFE, 0x02C7: 0xFF
+        };
+
+        // Windows-1252 encoding table: Unicode codepoint -> Windows-1252 byte
+        const win1252FromUnicode = {
+            0x20AC: 0x80, 0x201A: 0x82, 0x0192: 0x83, 0x201E: 0x84, 0x2026: 0x85,
+            0x2020: 0x86, 0x2021: 0x87, 0x02C6: 0x88, 0x2030: 0x89, 0x0160: 0x8A,
+            0x2039: 0x8B, 0x0152: 0x8C, 0x017D: 0x8E, 0x2018: 0x91, 0x2019: 0x92,
+            0x201C: 0x93, 0x201D: 0x94, 0x2022: 0x95, 0x2013: 0x96, 0x2014: 0x97,
+            0x02DC: 0x98, 0x2122: 0x99, 0x0161: 0x9A, 0x203A: 0x9B, 0x0153: 0x9C,
+            0x017E: 0x9E, 0x0178: 0x9F
+        };
+
+        // Encode string to specific encoding
+        function encodeString(str, encoding) {
+            // For UTF-8, use native TextEncoder
+            if (encoding === 'utf-8') {
+                return new TextEncoder().encode(str);
+            }
+            
+            const bytes = [];
+            const encTable = encoding === 'macintosh' ? macRomanFromUnicode : win1252FromUnicode;
+            
+            for (let i = 0; i < str.length; i++) {
+                const code = str.charCodeAt(i);
+                
+                if (code < 0x80) {
+                    // ASCII - same in all encodings
+                    bytes.push(code);
+                } else if (encTable[code] !== undefined) {
+                    // Use encoding table
+                    bytes.push(encTable[code]);
+                } else if (code >= 0x00A0 && code <= 0x00FF) {
+                    // Latin-1 Supplement (mostly same in Windows-1252)
+                    bytes.push(code);
+                } else {
+                    // Character not in encoding - use '?'
+                    bytes.push(0x3F);
+                }
+            }
+            
+            return new Uint8Array(bytes);
+        }
+
+        // Trigger TXT download with specified encoding
+        function downloadTXT(content, filename, encoding) {
+            const bytes = encodeString(content, encoding);
+            const blob = new Blob([bytes], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.textContent = `Download ${filename}`;
+            return link;
+        }
+
+        // Trigger XLSX download
+        function downloadXLSX(data, filename) {
+            const worksheet = XLSX.utils.aoa_to_sheet(data);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+            const xlsxData = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([xlsxData], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.textContent = `Download ${filename}`;
+            return link;
+        }
+
+        // Convert XLSX to TXT
+        async function convertXlsxToTxt() {
+            try {
+                xlsxError.textContent = '';
+                txtDownload.innerHTML = '';
+                
+                const encoding = xlsxOutputEncoding.value;
+                const data = await parseXLSX(xlsxFile);
+                const txtContent = xlsxToTxt(data);
+                
+                const baseName = xlsxFile.name.replace(/\.xlsx$/i, '');
+                const link = downloadTXT(txtContent, `${baseName}.txt`, encoding);
+                txtDownload.appendChild(link);
+            } catch (err) {
+                xlsxError.textContent = 'Error: ' + err.message;
+            }
+        }
+
+        // Convert TXT to XLSX
+        async function convertTxtToXlsx() {
+            try {
+                txtError.textContent = '';
+                xlsxDownload.innerHTML = '';
+                
+                const encoding = txtInputEncoding.value;
+                const data = await parseTXT(txtFile, encoding);
+                const xlsxData = txtToXlsx(data);
+                
+                const baseName = txtFile.name.replace(/\.txt$/i, '');
+                const link = downloadXLSX(xlsxData, `${baseName}.xlsx`);
+                xlsxDownload.appendChild(link);
+            } catch (err) {
+                txtError.textContent = 'Error: ' + err.message;
+            }
+        }
+    </script>
+</body>
+</html>
+
