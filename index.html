@@ -167,13 +167,37 @@
         xlsxToTxtBtn.addEventListener('click', convertXlsxToTxt);
         txtToXlsxBtn.addEventListener('click', convertTxtToXlsx);
 
-        // Get current date in YY-MM-DD format
+        // Get current date in YYMMDD format
         function getCurrentDate() {
             const now = new Date();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
             const year = String(now.getFullYear()).slice(-2);
-            return `${year}-${month}-${day}`;
+            return `${year}${month}${day}`;
+        }
+
+        // Convert locale code (en_EN) to 2-letter uppercase (EN) for TXT
+        function localeToShort(locale) {
+            if (!locale || typeof locale !== 'string') return locale;
+            // Handle format like "en_EN" -> "EN"
+            const match = locale.match(/^([a-z]{2})_([A-Z]{2})$/i);
+            if (match) {
+                return match[2].toUpperCase();
+            }
+            return locale;
+        }
+
+        // Convert 2-letter code (EN) to locale format (en_EN) for XLSX
+        function shortToLocale(code) {
+            if (!code || typeof code !== 'string') return code;
+            // Handle format like "EN" -> "en_EN"
+            const match = code.match(/^([A-Z]{2})$/i);
+            if (match) {
+                const lower = code.toLowerCase();
+                const upper = code.toUpperCase();
+                return `${lower}_${upper}`;
+            }
+            return code;
         }
 
         // Parse XLSX file and return 2D array
@@ -241,10 +265,14 @@
             // Transpose: now rows = languages, cols = variables
             const transposed = transpose(data);
             
-            // Add Date column after first column
+            // Add Date column after first column and convert language codes
             const currentDate = getCurrentDate();
             const result = transposed.map((row, index) => {
                 const newRow = [...row];
+                // Convert language code in first column (e.g., en_EN -> EN)
+                if (index > 0 && newRow[0]) {
+                    newRow[0] = localeToShort(newRow[0]);
+                }
                 // Insert "Date" header or date value after first column
                 if (index === 0) {
                     newRow.splice(1, 0, 'Date');
@@ -263,10 +291,14 @@
             // TXT: rows = languages, cols = variables + Date column
             // XLSX: rows = variables (without Date), cols = languages
             
-            // Remove Date column (index 1)
-            const withoutDate = data.map(row => {
+            // Remove Date column (index 1) and convert language codes
+            const withoutDate = data.map((row, index) => {
                 const newRow = [...row];
                 newRow.splice(1, 1);
+                // Convert language code in first column (e.g., EN -> en_EN)
+                if (index > 0 && newRow[0]) {
+                    newRow[0] = shortToLocale(newRow[0]);
+                }
                 return newRow;
             });
             
