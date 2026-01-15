@@ -1,4 +1,0 @@
-Language.label	Date	Label1	Label2	Label3
-Language.value1	11/1/25	Value1.1	Value2.1	Value3.1
-Language.value2	11/1/25	Value1.2	Value2.2	Value3.2
-Language.value3	11/1/25	Value1.3	Value2.3	Value3.3
