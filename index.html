@@ -95,6 +95,15 @@
             margin-top: 20px;
             text-align: center;
         }
+        .note-list {
+            color: #666;
+            font-size: 0.85rem;
+            margin: 10px 0 20px 18px;
+            text-align: left;
+        }
+        .note-list li {
+            margin: 4px 0;
+        }
     </style>
 </head>
 <body>
@@ -114,6 +123,12 @@
         <div class="error" id="xlsxError"></div>
     </div>
 
+    <ul class="note-list">
+        <li>Double spaces will be removed.</li>
+        <li>Line breaks will be removed.</li>
+        <li>The conversion date (YY-MM-DD) will be added automatically and will serve as the print material version.</li>
+    </ul>
+    
     <div class="section">
         <h2>TXT → XLSX</h2>
         <div class="form-row">
@@ -167,13 +182,13 @@
         xlsxToTxtBtn.addEventListener('click', convertXlsxToTxt);
         txtToXlsxBtn.addEventListener('click', convertTxtToXlsx);
 
-        // Get current date in YYMMDD format
+        // Get current date in YY-MM-DD format
         function getCurrentDate() {
             const now = new Date();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const day = String(now.getDate()).padStart(2, '0');
             const year = String(now.getFullYear()).slice(-2);
-            return `${year}${month}${day}`;
+            return `${year}-${month}-${day}`;
         }
 
         // Convert locale code (en_EN) to 2-letter uppercase (EN) for TXT
@@ -257,6 +272,12 @@
             return result;
         }
 
+        function normalizeTxtCell(value) {
+            if (value === null || value === undefined) return '';
+            const str = String(value);
+            return str.replace(/[\r\n]+/g, ' ').replace(/ {2,}/g, ' ').trim();
+        }
+
         // Convert XLSX data to TXT format
         function xlsxToTxt(data) {
             // XLSX: rows = variables (Label1, Label2...), cols = languages
@@ -268,7 +289,7 @@
             // Add Date column after first column and convert language codes
             const currentDate = getCurrentDate();
             const result = transposed.map((row, index) => {
-                const newRow = [...row];
+                const newRow = row.map((cell) => normalizeTxtCell(cell));
                 // Convert language code in first column (e.g., en_EN -> EN)
                 if (index > 0 && newRow[0]) {
                     newRow[0] = localeToShort(newRow[0]);
