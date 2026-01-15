@@ -1,0 +1,240 @@
+* {
+    box-sizing: border-box;
+}
+body {
+    font-family: system-ui, -apple-system, sans-serif;
+    max-width: 1100px;
+    margin: 40px auto;
+    padding: 20px;
+    background: #000;
+    color: #fff;
+}
+.layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 24px;
+    align-items: start;
+}
+.main-column {
+    min-width: 0;
+}
+.log-panel {
+    min-width: 0;
+}
+.section {
+    background: #1a1a1a;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 6px;
+    border: 1px solid #333;
+}
+.section h2 {
+    font-size: 1.1rem;
+    margin: 0 0 15px 0;
+    color: #fff;
+    font-weight: 600;
+}
+.form-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+input[type="file"] {
+    color: #fff;
+}
+input[type="file"]::file-selector-button {
+    background: #444;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+input[type="file"]::file-selector-button:hover {
+    background: #555;
+}
+label {
+    color: #aaa;
+    font-size: 0.9rem;
+}
+select {
+    padding: 6px 10px;
+    border: 1px solid #444;
+    border-radius: 3px;
+    background: #333;
+    color: #fff;
+}
+button {
+    background: #0066cc;
+    color: #fff;
+    border: none;
+    padding: 8px 16px;
+    cursor: pointer;
+    border-radius: 3px;
+    font-weight: 500;
+}
+button:hover {
+    background: #0077ee;
+}
+button:disabled {
+    background: #444;
+    color: #666;
+    cursor: not-allowed;
+}
+.download-area {
+    margin-top: 12px;
+}
+.download-area a {
+    color: #4da6ff;
+}
+.error {
+    color: #ff6b6b;
+    margin-top: 10px;
+}
+.note {
+    color: #666;
+    font-size: 0.85rem;
+    margin-top: 20px;
+    text-align: center;
+}
+.note-list {
+    color: #666;
+    font-size: 0.85rem;
+    margin: 10px 0 20px 18px;
+    text-align: left;
+}
+.note-list li {
+    margin: 4px 0;
+}
+.note-list input[type="checkbox"] {
+    margin-right: 6px;
+}
+.link-button {
+    background: none;
+    border: none;
+    color: #4da6ff;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+}
+.link-button:hover {
+    text-decoration: underline;
+}
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+.modal-overlay.is-open {
+    display: flex;
+}
+.modal {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 6px;
+    width: min(760px, 92vw);
+    max-height: 80vh;
+    display: flex;
+    flex-direction: column;
+}
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #333;
+}
+.modal-title {
+    margin: 0;
+    font-size: 1rem;
+    color: #fff;
+}
+.modal-close {
+    background: none;
+    border: none;
+    color: #aaa;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+.modal-body {
+    padding: 12px 16px;
+    overflow: auto;
+    color: #ddd;
+    line-height: 1.4;
+}
+.modal-body h4 {
+    margin: 14px 0 6px;
+    font-size: 0.95rem;
+    color: #fff;
+}
+.modal-body p {
+    margin: 6px 0;
+}
+.modal-body ul {
+    margin: 6px 0 8px 18px;
+    padding: 0;
+}
+.modal-body li {
+    margin: 4px 0;
+}
+.modal-body code {
+    color: #e89cff;
+}
+.log-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+.log-count {
+    color: #666;
+    font-size: 0.85rem;
+}
+.log-empty {
+    color: #666;
+    margin: 8px 0 12px;
+    font-size: 0.85rem;
+}
+.log-list {
+    margin: 0 0 0 18px;
+    padding: 0;
+    max-height: 520px;
+    overflow: auto;
+}
+.log-list li {
+    margin: 4px 0;
+    color: #ddd;
+    font-size: 0.85rem;
+    word-break: break-word;
+}
+.log-before {
+    color: #CA6627;
+}
+.log-after {
+    color: #818F62;
+}
+.log-ws {
+    color: #CA6627;
+    font-weight: 600;
+}
+.log-line {
+    color: #818F62;
+}
+.log-rule {
+    color: #aaa;
+}
+@media (max-width: 900px) {
+    body {
+        max-width: 720px;
+    }
+    .layout {
+        grid-template-columns: 1fr;
+    }
+}
+
