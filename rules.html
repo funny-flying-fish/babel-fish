@@ -1,0 +1,73 @@
+<h4>Application in the converter</h4>
+<ul>
+    <li>Rules are applied only when converting XLSX → TXT.</li>
+    <li>Processing runs for all cells except the first column (key).</li>
+    <li>The language code is taken from the first row after converting <code>en_EN → EN</code>.</li>
+</ul>
+
+<h4>NBSP rules</h4>
+<p>Order: numeric formatting → spacing before units → unit case normalization → global rules → language-specific rules.</p>
+
+<h4>1 Numeric formatting</h4>
+<p><strong>1.1 Percent (%).</strong></p>
+<ul>
+    <li>EN: attached to the number (<code>10%</code>).</li>
+    <li>FR/DE/ES/NL and others: NBSP between number and % (<code>10 %</code>).</li>
+</ul>
+
+<p><strong>1.2 Currencies (€,$,£).</strong></p>
+<ul>
+    <li>EN and NL: symbol before the number (EN no space: <code>$100</code>, NL with NBSP: <code>€ 100</code>).</li>
+    <li>FR/DE/ES: symbol after the number with NBSP (<code>100 €</code>).</li>
+</ul>
+
+<p><strong>1.3 Thousands separator.</strong></p>
+<ul>
+    <li>EN: comma (<code>1,234</code>).</li>
+    <li>FR: NBSP (<code>1 234</code>).</li>
+    <li>DE/ES/NL: dot (<code>1.234</code>).</li>
+</ul>
+
+<p><strong>1.4 Decimal separator.</strong></p>
+<ul>
+    <li>EN: dot (<code>0.136</code>).</li>
+    <li>FR/DE/ES/NL: comma (<code>0,136</code>).</li>
+</ul>
+
+<h4>2 Unit spacing</h4>
+<ul>
+    <li>Power units: <code>W</code>, <code>kW</code>, <code>MW</code>, <code>GW</code>, <code>hp</code>, <code>PS</code>, <code>CV</code> → NBSP between the number and unit (inserted even if there was no space).</li>
+    <li>Electrical: <code>V</code>, <code>kV</code>, <code>mV</code>, <code>A</code>, <code>mA</code>, <code>Hz</code>, <code>kHz</code>, <code>MHz</code>, <code>GHz</code>, <code>Ohm</code>, <code>Ω</code> → NBSP between number and unit.</li>
+    <li>Energy and capacitance: <code>Wh</code>, <code>kWh</code>, <code>MWh</code>, <code>J</code>, <code>kJ</code>, <code>F</code>, <code>µF/μF</code>, <code>nF</code> → NBSP between number and unit.</li>
+    <li>Force and pressure: <code>N</code>, <code>kN</code>, <code>Kgf/kgf</code>, <code>Pa</code>, <code>kPa</code>, <code>bar</code>, <code>Nm</code> → NBSP between number and unit.</li>
+    <li>Composite units: <code>kg/h/N</code>, <code>m/s2</code> and other combinations like <code>A/B</code>, <code>A.B</code> → NBSP between number and unit (inserted even if there was no space).</li>
+    <li>Metric measures: <code>km</code>, <code>m</code>, <code>cm</code>, <code>mm</code>, <code>kg</code>, <code>g</code>, <code>mg</code>, <code>l</code>, <code>ml</code> → NBSP between number and unit.</li>
+</ul>
+
+<h4>3 Unit case normalization</h4>
+<p>Normalizes unit letter case to ISO/SI standards. Applies only to "number + unit" pairs.</p>
+<p><strong>3.1 Power.</strong> <code>W</code>, <code>kW</code>, <code>MW</code>, <code>GW</code>, <code>hp</code>, <code>PS</code>, <code>CV</code>.</p>
+<p><strong>3.2 Electrical.</strong> <code>V</code>, <code>kV</code>, <code>mV</code>, <code>A</code>, <code>mA</code>, <code>Hz</code>, <code>kHz</code>, <code>MHz</code>, <code>GHz</code>, <code>Ohm</code>, <code>Ω</code>.</p>
+<p><strong>3.3 Energy and capacitance.</strong> <code>Wh</code>, <code>kWh</code>, <code>MWh</code>, <code>J</code>, <code>kJ</code>, <code>F</code>, <code>μF</code>, <code>nF</code>.</p>
+<p><strong>3.4 Force and pressure.</strong> <code>N</code>, <code>kN</code>, <code>kgf</code>, <code>Pa</code>, <code>kPa</code>, <code>bar</code>, <code>Nm</code>.</p>
+<p><strong>3.5 Metric measures.</strong> <code>km</code>, <code>m</code>, <code>cm</code>, <code>mm</code>, <code>kg</code>, <code>g</code>, <code>mg</code>, <code>l</code>, <code>ml</code>.</p>
+<p><strong>3.6 Composite units.</strong> <code>kg/h/N</code>, <code>m/s²</code>.</p>
+
+<h4>4 Global rules</h4>
+<ul>
+    <li>Initials and surnames: <code>J. Doe</code>, <code>A. Einstein</code> → the space after initials becomes NBSP.</li>
+    <li>Abbreviations and numerals: <code>p. 42</code>, <code>№ 10</code>, <code>Vol. 3</code> → the space after the abbreviation becomes NBSP.</li>
+    <li>Dates (English format): <code>Jan 15, 2026 year</code> → NBSP between month and day, and between year and the word <code>year</code>.</li>
+</ul>
+
+<h4>5 Language-specific rules</h4>
+<p><strong>5.1 English (EN).</strong> <code>a</code>, <code>an</code>, <code>the</code>, <code>I</code> → the space after these words becomes NBSP.</p>
+<p><strong>5.2 French (FR).</strong> <code>à</code>, <code>y</code>, <code>en</code>, <code>le</code>, <code>la</code>, <code>les</code>, <code>un</code>, <code>une</code>, <code>de</code>, <code>du</code> → the space after these words becomes NBSP.</p>
+<ul>
+    <li>Punctuation: NBSP before <code>; : ! ?</code> (inserted even if there was no space).</li>
+    <li>Guillemets: <code>« text »</code> → NBSP after <code>«</code> and before <code>»</code> (inserted even if there was no space).</li>
+</ul>
+<p><strong>5.3 Spanish (ES).</strong> <code>a</code>, <code>e</code>, <code>i</code>, <code>o</code>, <code>u</code>, <code>y</code>, <code>la</code>, <code>el</code>, <code>un</code> → the space after these words becomes NBSP.</p>
+<p><strong>5.4 German (DE).</strong> <code>der</code>, <code>die</code>, <code>das</code>, <code>ein</code>, <code>eine</code> → the space after these words becomes NBSP.</p>
+<p><strong>5.5 Dutch (NL).</strong> <code>de</code>, <code>het</code>, <code>een</code>, <code>in</code>, <code>op</code>, <code>te</code>, <code>ten</code>, <code>ter</code> → the space after these words becomes NBSP.</p>
+

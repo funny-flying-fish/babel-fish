@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Converter</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="vendor/xlsx.full.min.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -104,6 +104,84 @@
         .note-list li {
             margin: 4px 0;
         }
+        .note-list input[type="checkbox"] {
+            margin-right: 6px;
+        }
+        .link-button {
+            background: none;
+            border: none;
+            color: #4da6ff;
+            padding: 0;
+            font: inherit;
+            cursor: pointer;
+        }
+        .link-button:hover {
+            text-decoration: underline;
+        }
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.is-open {
+            display: flex;
+        }
+        .modal {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 6px;
+            width: min(760px, 92vw);
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 1px solid #333;
+        }
+        .modal-title {
+            margin: 0;
+            font-size: 1rem;
+            color: #fff;
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+        .modal-body {
+            padding: 12px 16px;
+            overflow: auto;
+            color: #ddd;
+            line-height: 1.4;
+        }
+        .modal-body h4 {
+            margin: 14px 0 6px;
+            font-size: 0.95rem;
+            color: #fff;
+        }
+        .modal-body p {
+            margin: 6px 0;
+        }
+        .modal-body ul {
+            margin: 6px 0 8px 18px;
+            padding: 0;
+        }
+        .modal-body li {
+            margin: 4px 0;
+        }
+        .modal-body code {
+            color: #e89cff;
+        }
     </style>
 </head>
 <body>
@@ -127,7 +205,23 @@
         <li>Double spaces will be removed.</li>
         <li>Line breaks will be removed.</li>
         <li>The conversion date (YY-MM-DD) will be added automatically and will serve as the print material version.</li>
+        <li><label><input type="checkbox" id="ruleNumeric" checked> Numeric formatting</label></li>
+        <li><label><input type="checkbox" id="ruleUnitSpacing" checked> Unit spacing</label></li>
+        <li><label><input type="checkbox" id="ruleUnitCase" checked> Unit case normalization</label></li>
+        <li><label><input type="checkbox" id="ruleGlobal" checked> Global rules</label></li>
+        <li><label><input type="checkbox" id="ruleLanguage" checked> Language rules</label></li>
+        <li><button type="button" class="link-button" id="openRules">More information</button></li>
     </ul>
+
+    <div class="modal-overlay" id="rulesModal" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+            <div class="modal-header">
+                <h3 class="modal-title" id="rulesTitle">NBSP Rules</h3>
+                <button type="button" class="modal-close" id="closeRules" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body" id="rulesContent">Loading...</div>
+        </div>
+    </div>
     
     <div class="section">
         <h2>TXT → XLSX</h2>
@@ -147,6 +241,7 @@
 
     <p class="note">Default encoding is Mac Roman. If you notice character issues in the output, please try a different encoding option.</p>
 
+    <script src="nbspace.js"></script>
     <script>
         // File references
         let xlsxFile = null;
@@ -163,6 +258,68 @@
         const txtError = document.getElementById('txtError');
         const xlsxOutputEncoding = document.getElementById('xlsxOutputEncoding');
         const txtInputEncoding = document.getElementById('txtInputEncoding');
+        const ruleNumeric = document.getElementById('ruleNumeric');
+        const ruleUnitSpacing = document.getElementById('ruleUnitSpacing');
+        const ruleUnitCase = document.getElementById('ruleUnitCase');
+        const ruleGlobal = document.getElementById('ruleGlobal');
+        const ruleLanguage = document.getElementById('ruleLanguage');
+        const openRules = document.getElementById('openRules');
+        const rulesModal = document.getElementById('rulesModal');
+        const closeRules = document.getElementById('closeRules');
+        const rulesContent = document.getElementById('rulesContent');
+
+        window.nbspSettings = {
+            numericFormatting: ruleNumeric.checked,
+            unitSpacing: ruleUnitSpacing.checked,
+            unitCaseNormalization: ruleUnitCase.checked,
+            globalRules: ruleGlobal.checked,
+            languageRules: ruleLanguage.checked
+        };
+
+        function syncNbspSettings() {
+            window.nbspSettings = {
+                numericFormatting: ruleNumeric.checked,
+                unitSpacing: ruleUnitSpacing.checked,
+                unitCaseNormalization: ruleUnitCase.checked,
+                globalRules: ruleGlobal.checked,
+                languageRules: ruleLanguage.checked
+            };
+        }
+
+        ruleNumeric.addEventListener('change', syncNbspSettings);
+        ruleUnitSpacing.addEventListener('change', syncNbspSettings);
+        ruleUnitCase.addEventListener('change', syncNbspSettings);
+        ruleGlobal.addEventListener('change', syncNbspSettings);
+        ruleLanguage.addEventListener('change', syncNbspSettings);
+
+        async function openRulesModal() {
+            rulesModal.classList.add('is-open');
+            rulesModal.setAttribute('aria-hidden', 'false');
+            try {
+                const response = await fetch('rules.html', { cache: 'no-store' });
+                if (!response.ok) throw new Error('Failed to load rules');
+                const text = await response.text();
+                rulesContent.innerHTML = text;
+            } catch (err) {
+                rulesContent.textContent = 'Unable to load rules.';
+            }
+        }
+
+        function closeRulesModal() {
+            rulesModal.classList.remove('is-open');
+            rulesModal.setAttribute('aria-hidden', 'true');
+        }
+
+        openRules.addEventListener('click', openRulesModal);
+        closeRules.addEventListener('click', closeRulesModal);
+        rulesModal.addEventListener('click', (e) => {
+            if (e.target === rulesModal) closeRulesModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && rulesModal.classList.contains('is-open')) {
+                closeRulesModal();
+            }
+        });
 
         // Event listeners
         xlsxInput.addEventListener('change', (e) => {
@@ -290,16 +447,24 @@
             const currentDate = getCurrentDate();
             const result = transposed.map((row, index) => {
                 const newRow = row.map((cell) => normalizeTxtCell(cell));
+
                 // Convert language code in first column (e.g., en_EN -> EN)
                 if (index > 0 && newRow[0]) {
                     newRow[0] = localeToShort(newRow[0]);
+                    const langCode = newRow[0];
+                    // Apply NBSP rules to all values except the first column (key)
+                    for (let i = 1; i < newRow.length; i++) {
+                        newRow[i] = applyNbspRules(newRow[i], langCode);
+                    }
                 }
+
                 // Insert "Date" header or date value after first column
                 if (index === 0) {
                     newRow.splice(1, 0, 'Date');
                 } else {
                     newRow.splice(1, 0, currentDate);
                 }
+
                 return newRow;
             });
             
