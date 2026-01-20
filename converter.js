@@ -257,7 +257,10 @@
             return { intPart, fracPart };
         }
 
-        function formatIntegerPart(intPart, separator) {
+        function formatIntegerPart(intPart, separator, lang) {
+            if (lang === "ES" && intPart.length <= 4) {
+                return intPart;
+            }
             return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
         }
 
@@ -265,7 +268,7 @@
         return text.replace(numberRegex, (match) => {
             const parts = parseNumberString(match);
             if (!parts) return match;
-            const formattedInt = formatIntegerPart(parts.intPart, thousandsSep);
+            const formattedInt = formatIntegerPart(parts.intPart, thousandsSep, lang);
             const updated = parts.fracPart ? `${formattedInt}${decimalSep}${parts.fracPart}` : formattedInt;
             logChange(logger, 'Number separators', match, updated);
             return updated;
