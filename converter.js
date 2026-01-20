@@ -1,20 +1,27 @@
-(() => {
-    const NBSP = "\u00A0";
-    const DEFAULT_SETTINGS = {
-        numericFormatting: true,
-        numberSeparators: true,
-        percentFormatting: true,
-        currencyFormatting: true,
-        unitSpacing: true,
-        unitCaseNormalization: true,
-        globalRules: true,
-        languageRules: true
-    };
+const NBSP = "\u00A0";
+const DEFAULT_SETTINGS = {
+    numericFormatting: true,
+    numberSeparators: true,
+    percentFormatting: true,
+    currencyFormatting: true,
+    unitSpacing: true,
+    unitCaseNormalization: true,
+    stripOuterQuotes: true,
+    globalRules: true,
+    languageRules: true
+};
 
-    function getSettings() {
-        const current = window.nbspSettings || {};
-        return { ...DEFAULT_SETTINGS, ...current };
-    }
+function getSettings() {
+    const current = window.nbspSettings || {};
+    return { ...DEFAULT_SETTINGS, ...current };
+}
+
+function getTxtSettings() {
+    const current = window.nbspSettingsTxt || {};
+    return { ...DEFAULT_SETTINGS, ...current };
+}
+
+(() => {
     const NUMBER_PATTERN = '(?:\\d[\\d.,\\u00A0 ]*\\d|\\d)';
     const UNIT_TOKENS = [
         'W', 'kW', 'MW', 'GW', 'hp', 'PS', 'CV',
@@ -187,14 +194,14 @@
                 logChange(logger, 'FR NBSP before punctuation', match, updated);
                 return updated;
             });
-            result = result.replace(/«\s*/g, (match) => {
-                const updated = `«${NBSP}`;
-                logChange(logger, 'FR NBSP in guillemets', match, updated);
+            result = result.replace(/«[\u00A0\u202F]+/g, (match) => {
+                const updated = '«';
+                logChange(logger, 'FR guillemet spacing removed', match, updated);
                 return updated;
             });
-            result = result.replace(/\s*»/g, (match) => {
-                const updated = `${NBSP}»`;
-                logChange(logger, 'FR NBSP in guillemets', match, updated);
+            result = result.replace(/[\u00A0\u202F]+»/g, (match) => {
+                const updated = '»';
+                logChange(logger, 'FR guillemet spacing removed', match, updated);
                 return updated;
             });
         } else if (lang === "ES") {
@@ -361,7 +368,9 @@
         const text = String(value);
         if (!text) return text;
 
-        const settings = getSettings();
+        const settings = options.settings
+            ? { ...DEFAULT_SETTINGS, ...options.settings }
+            : getSettings();
         const logger = typeof options.logger === 'function' ? options.logger : null;
         const withNumeric = applyNumericFormatting(text, langCode, settings.numericFormatting, logger);
         const withUnits = applyUnitSpacing(withNumeric, settings.unitSpacing, logger);
@@ -389,8 +398,15 @@ const txtInputEncoding = document.getElementById('txtInputEncoding');
 const ruleNumeric = document.getElementById('ruleNumeric');
 const ruleUnitSpacing = document.getElementById('ruleUnitSpacing');
 const ruleUnitCase = document.getElementById('ruleUnitCase');
+const ruleStripQuotes = document.getElementById('ruleStripQuotes');
 const ruleGlobal = document.getElementById('ruleGlobal');
 const ruleLanguage = document.getElementById('ruleLanguage');
+const ruleNumericTxt = document.getElementById('ruleNumericTxt');
+const ruleUnitSpacingTxt = document.getElementById('ruleUnitSpacingTxt');
+const ruleUnitCaseTxt = document.getElementById('ruleUnitCaseTxt');
+const ruleStripQuotesTxt = document.getElementById('ruleStripQuotesTxt');
+const ruleGlobalTxt = document.getElementById('ruleGlobalTxt');
+const ruleLanguageTxt = document.getElementById('ruleLanguageTxt');
 const openRules = document.getElementById('openRules');
 const rulesModal = document.getElementById('rulesModal');
 const closeRules = document.getElementById('closeRules');
@@ -404,8 +420,18 @@ window.nbspSettings = {
     numericFormatting: ruleNumeric.checked,
     unitSpacing: ruleUnitSpacing.checked,
     unitCaseNormalization: ruleUnitCase.checked,
+    stripOuterQuotes: ruleStripQuotes.checked,
     globalRules: ruleGlobal.checked,
     languageRules: ruleLanguage.checked
+};
+
+window.nbspSettingsTxt = {
+    numericFormatting: ruleNumericTxt.checked,
+    unitSpacing: ruleUnitSpacingTxt.checked,
+    unitCaseNormalization: ruleUnitCaseTxt.checked,
+    stripOuterQuotes: ruleStripQuotesTxt.checked,
+    globalRules: ruleGlobalTxt.checked,
+    languageRules: ruleLanguageTxt.checked
 };
 
 function syncNbspSettings() {
@@ -413,16 +439,36 @@ function syncNbspSettings() {
         numericFormatting: ruleNumeric.checked,
         unitSpacing: ruleUnitSpacing.checked,
         unitCaseNormalization: ruleUnitCase.checked,
+        stripOuterQuotes: ruleStripQuotes.checked,
         globalRules: ruleGlobal.checked,
         languageRules: ruleLanguage.checked
+    };
+}
+
+function syncNbspSettingsTxt() {
+    window.nbspSettingsTxt = {
+        numericFormatting: ruleNumericTxt.checked,
+        unitSpacing: ruleUnitSpacingTxt.checked,
+        unitCaseNormalization: ruleUnitCaseTxt.checked,
+        stripOuterQuotes: ruleStripQuotesTxt.checked,
+        globalRules: ruleGlobalTxt.checked,
+        languageRules: ruleLanguageTxt.checked
     };
 }
 
 ruleNumeric.addEventListener('change', syncNbspSettings);
 ruleUnitSpacing.addEventListener('change', syncNbspSettings);
 ruleUnitCase.addEventListener('change', syncNbspSettings);
+ruleStripQuotes.addEventListener('change', syncNbspSettings);
 ruleGlobal.addEventListener('change', syncNbspSettings);
 ruleLanguage.addEventListener('change', syncNbspSettings);
+
+ruleNumericTxt.addEventListener('change', syncNbspSettingsTxt);
+ruleUnitSpacingTxt.addEventListener('change', syncNbspSettingsTxt);
+ruleUnitCaseTxt.addEventListener('change', syncNbspSettingsTxt);
+ruleStripQuotesTxt.addEventListener('change', syncNbspSettingsTxt);
+ruleGlobalTxt.addEventListener('change', syncNbspSettingsTxt);
+ruleLanguageTxt.addEventListener('change', syncNbspSettingsTxt);
 
 async function openRulesModal() {
     rulesModal.classList.add('is-open');
@@ -694,9 +740,55 @@ function transpose(matrix) {
     return result;
 }
 
-function normalizeTxtCell(value, logger, context) {
+function stripOuterQuotes(value, enabled, logger, context) {
     if (value === null || value === undefined) return '';
-    const str = String(value);
+    const text = String(value);
+    if (!enabled) return text;
+    if (text.length < 2) return text;
+    const pairs = {
+        '"': '"',
+        '«': '»',
+        '“': '”',
+        '„': '“'
+    };
+    const first = text[0];
+    const last = text[text.length - 1];
+    if (pairs[first] && pairs[first] === last) {
+        const stripped = text.slice(1, -1);
+        if (logger && stripped !== text) {
+            logger('Outer quotes removed', text, stripped, context);
+        }
+        return stripped;
+    }
+    return text;
+}
+
+function applyFrenchNarrowSpaces(text, enabled, logger, context) {
+    if (!enabled) return text;
+    let result = text;
+    const normalized = result.replace(/\u202F/g, NBSP);
+    if (logger && normalized !== result) {
+        logger('FR narrow spaces normalized', result, normalized, context);
+    }
+    result = normalized;
+    const beforeQuotes = result;
+    result = result
+        .replace(/«[\u00A0\u202F]+/g, '«')
+        .replace(/[\u00A0\u202F]+»/g, '»');
+    if (logger && result !== beforeQuotes) {
+        logger('FR guillemet spacing removed', beforeQuotes, result, context);
+    }
+    return result;
+}
+
+function normalizeTxtCell(value, logger, context, langCode) {
+    if (value === null || value === undefined) return '';
+    let str = String(value);
+    const settings = getSettings();
+    const lang = (langCode || "").toUpperCase();
+    if (lang === "FR") {
+        str = applyFrenchNarrowSpaces(str, settings.languageRules, logger, context);
+    }
     const hasLineBreaks = /[\r\n]/.test(str);
     if (logger && hasLineBreaks) {
         logger('Line breaks removed', str, str.replace(/[\r\n]+/g, ' '), context);
@@ -706,7 +798,7 @@ function normalizeTxtCell(value, logger, context) {
     if (logger && normalized !== withoutLineBreaks) {
         logger('Whitespace normalization', withoutLineBreaks, normalized, context);
     }
-    return normalized;
+    return stripOuterQuotes(normalized, settings.stripOuterQuotes, logger, context);
 }
 
 // Convert XLSX data to TXT format
@@ -722,25 +814,32 @@ function xlsxToTxt(data) {
     // Add Date column after first column and convert language codes
     const currentDate = getCurrentDate();
     const result = transposed.map((row, index) => {
-        const newRow = row.map((cell, cellIndex) => {
-            const originalCol = index + 1;
-            const originalRow = cellIndex + 1;
-            const cellRef = `${columnToLetters(originalCol)}${originalRow}`;
-            const context = { cellRef };
-            return normalizeTxtCell(cell, addLog, context);
-        });
+        const newRow = row.map(cell => cell);
+        let langCode = null;
 
         // Convert language code in first column (e.g., en_EN -> EN)
         if (index > 0 && newRow[0]) {
-            newRow[0] = localeToShort(newRow[0]);
-            const langCode = newRow[0];
-            // Apply NBSP rules to all values except the first column (key)
-            for (let i = 1; i < newRow.length; i++) {
+            langCode = localeToShort(newRow[0]);
+            newRow[0] = langCode;
+        }
+
+        const normalizedRow = newRow.map((cell, cellIndex) => {
+            const originalCol = index + 1;
+            const originalRow = cellIndex + 1;
+            const cellRef = `${columnToLetters(originalCol)}${originalRow}`;
+            const context = { cellRef, lang: langCode };
+            return normalizeTxtCell(cell, addLog, context, langCode);
+        });
+
+        // Apply NBSP rules to all values except the first column (key)
+        if (index > 0 && normalizedRow[0]) {
+            langCode = normalizedRow[0];
+            for (let i = 1; i < normalizedRow.length; i++) {
                 const originalCol = index + 1;
                 const originalRow = i + 1;
                 const cellRef = `${columnToLetters(originalCol)}${originalRow}`;
                 const context = { cellRef, lang: langCode };
-                newRow[i] = applyNbspRules(newRow[i], langCode, {
+                normalizedRow[i] = applyNbspRules(normalizedRow[i], langCode, {
                     logger: (rule, before, after) => addLog(rule, before, after, context)
                 });
             }
@@ -748,12 +847,12 @@ function xlsxToTxt(data) {
 
         // Insert "Date" header or date value after first column
         if (index === 0) {
-            newRow.splice(1, 0, 'Date');
+            normalizedRow.splice(1, 0, 'Date');
         } else {
-            newRow.splice(1, 0, currentDate);
+            normalizedRow.splice(1, 0, currentDate);
         }
 
-        return newRow;
+        return normalizedRow;
     });
 
     // Convert to tab-separated string
@@ -768,8 +867,26 @@ function txtToXlsx(data) {
     // XLSX: rows = variables (without Date), cols = languages
 
     // Remove Date column (index 1) and convert language codes
+    const settings = getTxtSettings();
     const withoutDate = data.map((row, index) => {
-        const newRow = [...row];
+        const langCode = index > 0 && row[0] ? localeToShort(row[0]) : null;
+        const isFrench = (langCode || "").toUpperCase() === 'FR';
+        const newRow = row.map((cell, cellIndex) => {
+            const cellRef = `${columnToLetters(cellIndex + 1)}${index + 1}`;
+            const context = { cellRef, lang: langCode };
+            let value = cell;
+            if (isFrench) {
+                value = applyFrenchNarrowSpaces(value, settings.languageRules, addLog, context);
+            }
+            value = stripOuterQuotes(value, settings.stripOuterQuotes, addLog, context);
+            if (index > 0 && cellIndex > 0) {
+                value = applyNbspRules(value, langCode, {
+                    settings,
+                    logger: (rule, before, after) => addLog(rule, before, after, context)
+                });
+            }
+            return value;
+        });
         newRow.splice(1, 1);
         // Convert language code in first column (e.g., EN -> en_EN)
         if (index > 0 && newRow[0]) {
@@ -908,6 +1025,7 @@ async function convertTxtToXlsx() {
         const encoding = txtInputEncoding.value;
         const data = await parseTXT(txtFile, encoding);
         const xlsxData = txtToXlsx(data);
+        renderLog();
 
         const baseName = txtFile.name.replace(/\.txt$/i, '');
         const link = downloadXLSX(xlsxData, `${baseName}.xlsx`);

@@ -33,6 +33,7 @@
         <li><label><input type="checkbox" id="ruleNumeric" checked> Numeric formatting</label></li>
         <li><label><input type="checkbox" id="ruleUnitSpacing" checked> Unit spacing</label></li>
         <li><label><input type="checkbox" id="ruleUnitCase" checked> Unit case normalization</label></li>
+        <li><label><input type="checkbox" id="ruleStripQuotes" checked> Strip outer quotes</label></li>
         <li><label><input type="checkbox" id="ruleGlobal" checked> Global rules</label></li>
         <li><label><input type="checkbox" id="ruleLanguage" checked> Language rules</label></li>
         <li><button type="button" class="link-button" id="openRules">More information</button></li>
@@ -63,6 +64,16 @@
         <div class="download-area" id="xlsxDownload"></div>
         <div class="error" id="txtError"></div>
     </div>
+
+    <ul class="note-list">
+        <li>The Date column will be removed during conversion.</li>
+        <li><label><input type="checkbox" id="ruleNumericTxt" checked> Numeric formatting</label></li>
+        <li><label><input type="checkbox" id="ruleUnitSpacingTxt" checked> Unit spacing</label></li>
+        <li><label><input type="checkbox" id="ruleUnitCaseTxt" checked> Unit case normalization</label></li>
+        <li><label><input type="checkbox" id="ruleStripQuotesTxt" checked> Strip outer quotes</label></li>
+        <li><label><input type="checkbox" id="ruleGlobalTxt" checked> Global rules</label></li>
+        <li><label><input type="checkbox" id="ruleLanguageTxt" checked> Language rules</label></li>
+    </ul>
 
     <p class="note">Default encoding is Mac Roman. If you notice character issues in the output, please try a different encoding option.</p>
         </div>
