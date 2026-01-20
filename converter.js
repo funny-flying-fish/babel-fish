@@ -505,6 +505,11 @@ function addLog(rule, before, after, context) {
     logEntries.push({ rule, before, after, context });
 }
 
+function addLogNotice(message) {
+    if (!message) return;
+    logEntries.unshift({ rule: 'Notice', before: message, after: '', context: null });
+}
+
 function columnToLetters(index) {
     let result = '';
     let current = index;
@@ -609,7 +614,10 @@ function renderLog() {
             contextParts.push(formatCellRefHtml(entry.context.cellRef));
         }
         const contextHtml = contextParts.length ? `${contextParts.join(' ')} ` : '';
-        if (entry.rule === 'Whitespace normalization' || entry.rule === 'Line breaks removed') {
+        if (entry.rule === 'Notice') {
+            item.innerHTML = `${contextHtml}<span class="log-rule">${escapeHtml(entry.rule)}</span>: ` +
+                `${escapeHtml(entry.before)}`;
+        } else if (entry.rule === 'Whitespace normalization' || entry.rule === 'Line breaks removed') {
             const valueHtml = entry.rule === 'Line breaks removed'
                 ? formatLineBreakValue(entry.before)
                 : formatWhitespaceValue(entry.before);
@@ -781,11 +789,23 @@ function applyFrenchNarrowSpaces(text, enabled, logger, context) {
     return result;
 }
 
-function normalizeTxtCell(value, logger, context, langCode) {
+function normalizeNonBreakingHyphen(text, enabled, logger, context) {
+    if (text === null || text === undefined) return '';
+    const value = String(text);
+    if (!enabled) return value;
+    const normalized = value.replace(/\u2011/g, '-');
+    if (logger && normalized !== value) {
+        logger('Non-breaking hyphen normalized', value, normalized, context);
+    }
+    return normalized;
+}
+
+function normalizeTxtCell(value, logger, context, langCode, options = {}) {
     if (value === null || value === undefined) return '';
     let str = String(value);
     const settings = getSettings();
     const lang = (langCode || "").toUpperCase();
+    str = normalizeNonBreakingHyphen(str, options.replaceNonBreakingHyphen, logger, context);
     if (lang === "FR") {
         str = applyFrenchNarrowSpaces(str, settings.languageRules, logger, context);
     }
@@ -802,11 +822,13 @@ function normalizeTxtCell(value, logger, context, langCode) {
 }
 
 // Convert XLSX data to TXT format
-function xlsxToTxt(data) {
+function xlsxToTxt(data, options = {}) {
     // XLSX: rows = variables (Label1, Label2...), cols = languages
     // TXT: rows = languages, cols = variables + Date column
 
     resetLog('XLSX → TXT');
+    const replaceNonBreakingHyphen = Boolean(options.replaceNonBreakingHyphen);
+    let foundNonBreakingHyphen = false;
 
     // Transpose: now rows = languages, cols = variables
     const transposed = transpose(data);
@@ -828,7 +850,12 @@ function xlsxToTxt(data) {
             const originalRow = cellIndex + 1;
             const cellRef = `${columnToLetters(originalCol)}${originalRow}`;
             const context = { cellRef, lang: langCode };
-            return normalizeTxtCell(cell, addLog, context, langCode);
+            if (cell !== null && cell !== undefined && String(cell).includes('\u2011')) {
+                foundNonBreakingHyphen = true;
+            }
+            return normalizeTxtCell(cell, addLog, context, langCode, {
+                replaceNonBreakingHyphen
+            });
         });
 
         // Apply NBSP rules to all values except the first column (key)
@@ -858,7 +885,7 @@ function xlsxToTxt(data) {
     // Convert to tab-separated string
     const txt = result.map(row => row.join('\t')).join('\n');
     renderLog();
-    return txt;
+    return { txt, foundNonBreakingHyphen };
 }
 
 // Convert TXT data to XLSX format
@@ -1005,7 +1032,14 @@ async function convertXlsxToTxt() {
 
         const encoding = xlsxOutputEncoding.value;
         const data = await parseXLSX(xlsxFile);
-        const txtContent = xlsxToTxt(data);
+        const { txt, foundNonBreakingHyphen } = xlsxToTxt(data, {
+            replaceNonBreakingHyphen: encoding !== 'utf-8'
+        });
+        const txtContent = txt;
+        if (foundNonBreakingHyphen && encoding !== 'utf-8') {
+            addLogNotice('Non-breaking hyphen found. Use UTF-8 output to preserve it. If UTF-8 is not selected, the character will be replaced with a regular hyphen, which is safe.');
+            renderLog();
+        }
 
         const baseName = xlsxFile.name.replace(/\.xlsx$/i, '');
         const link = downloadTXT(txtContent, `${baseName}.txt`, encoding);
