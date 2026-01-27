@@ -507,7 +507,18 @@ function addLog(rule, before, after, context) {
 
 function addLogNotice(message) {
     if (!message) return;
-    logEntries.unshift({ rule: 'Notice', before: message, after: '', context: null });
+    const noticeEntry = { rule: 'Notice', before: message, after: '', context: null };
+    const firstNonErrorIndex = logEntries.findIndex((entry) => entry.rule !== 'Error');
+    if (firstNonErrorIndex === -1) {
+        logEntries.push(noticeEntry);
+    } else {
+        logEntries.splice(firstNonErrorIndex, 0, noticeEntry);
+    }
+}
+
+function addLogError(message) {
+    if (!message) return;
+    logEntries.unshift({ rule: 'Error', before: message, after: '', context: null });
 }
 
 function columnToLetters(index) {
@@ -614,9 +625,10 @@ function renderLog() {
             contextParts.push(formatCellRefHtml(entry.context.cellRef));
         }
         const contextHtml = contextParts.length ? `${contextParts.join(' ')} ` : '';
-        if (entry.rule === 'Notice') {
-            item.innerHTML = `${contextHtml}<span class="log-rule">${escapeHtml(entry.rule)}</span>: ` +
-                `${escapeHtml(entry.before)}`;
+        if (entry.rule === 'Notice' || entry.rule === 'Error') {
+            const ruleClass = entry.rule === 'Error' ? 'log-rule log-error' : 'log-rule';
+            item.innerHTML = `${contextHtml}<span class="${ruleClass}">${escapeHtml(entry.rule)}</span>: ` +
+                `<span class="${entry.rule === 'Error' ? 'log-error' : ''}">${escapeHtml(entry.before)}</span>`;
         } else if (entry.rule === 'Whitespace normalization' || entry.rule === 'Line breaks removed') {
             const valueHtml = entry.rule === 'Line breaks removed'
                 ? formatLineBreakValue(entry.before)
@@ -665,6 +677,15 @@ function getCurrentDate() {
     const day = String(now.getDate()).padStart(2, '0');
     const year = String(now.getFullYear()).slice(-2);
     return `${year}-${month}-${day}`;
+}
+
+function extractCodeFromFilename(filename) {
+    if (!filename) return { value: 'not-set', hasCode: false };
+    const match = filename.match(/\[(.*?)\]/);
+    if (!match) return { value: 'not-set', hasCode: false };
+    const trimmed = match[1].trim();
+    if (!trimmed) return { value: 'not-set', hasCode: false };
+    return { value: trimmed, hasCode: true };
 }
 
 // Convert locale code (en_EN) to 2-letter uppercase (EN) for TXT
@@ -829,12 +850,16 @@ function xlsxToTxt(data, options = {}) {
     resetLog('XLSX → TXT');
     const replaceNonBreakingHyphen = Boolean(options.replaceNonBreakingHyphen);
     let foundNonBreakingHyphen = false;
+    if (options.codeHasValue === false) {
+        addLogError('Нет значения в [] в названии файла. Использую code = not-set.');
+    }
 
     // Transpose: now rows = languages, cols = variables
     const transposed = transpose(data);
 
     // Add Date column after first column and convert language codes
     const currentDate = getCurrentDate();
+    const codeValue = options.codeValue || 'not-set';
     const result = transposed.map((row, index) => {
         const newRow = row.map(cell => cell);
         let langCode = null;
@@ -842,7 +867,7 @@ function xlsxToTxt(data, options = {}) {
         // Convert language code in first column (e.g., en_EN -> EN)
         if (index > 0 && newRow[0]) {
             langCode = localeToShort(newRow[0]);
-            newRow[0] = langCode;
+            newRow[0] = String(langCode).toUpperCase();
         }
 
         const normalizedRow = newRow.map((cell, cellIndex) => {
@@ -879,6 +904,13 @@ function xlsxToTxt(data, options = {}) {
             normalizedRow.splice(1, 0, currentDate);
         }
 
+        // Insert "code" column as the first column
+        if (index === 0) {
+            normalizedRow.unshift('code');
+        } else {
+            normalizedRow.unshift(codeValue);
+        }
+
         return normalizedRow;
     });
 
@@ -895,10 +927,12 @@ function txtToXlsx(data) {
 
     // Remove Date column (index 1) and convert language codes
     const settings = getTxtSettings();
+    const hasCodeColumn = data.length > 0 && String(data[0][0] || '').trim().toLowerCase() === 'code';
     const withoutDate = data.map((row, index) => {
-        const langCode = index > 0 && row[0] ? localeToShort(row[0]) : null;
+        const effectiveRow = hasCodeColumn ? row.slice(1) : row;
+        const langCode = index > 0 && effectiveRow[0] ? localeToShort(effectiveRow[0]) : null;
         const isFrench = (langCode || "").toUpperCase() === 'FR';
-        const newRow = row.map((cell, cellIndex) => {
+        const newRow = effectiveRow.map((cell, cellIndex) => {
             const cellRef = `${columnToLetters(cellIndex + 1)}${index + 1}`;
             const context = { cellRef, lang: langCode };
             let value = cell;
@@ -1032,8 +1066,11 @@ async function convertXlsxToTxt() {
 
         const encoding = xlsxOutputEncoding.value;
         const data = await parseXLSX(xlsxFile);
+        const { value: codeValue, hasCode } = extractCodeFromFilename(xlsxFile.name);
         const { txt, foundNonBreakingHyphen } = xlsxToTxt(data, {
-            replaceNonBreakingHyphen: encoding !== 'utf-8'
+            replaceNonBreakingHyphen: encoding !== 'utf-8',
+            codeValue,
+            codeHasValue: hasCode
         });
         const txtContent = txt;
         if (foundNonBreakingHyphen && encoding !== 'utf-8') {

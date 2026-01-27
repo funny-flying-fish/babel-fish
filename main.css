@@ -229,6 +229,9 @@ button:disabled {
 .log-rule {
     color: #aaa;
 }
+.log-error {
+    color: #ff6b6b;
+}
 @media (max-width: 900px) {
     body {
         max-width: 720px;
