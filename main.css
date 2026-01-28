@@ -282,6 +282,17 @@ button:disabled {
     color: #fff;
     font-family: monospace;
 }
+.token-hint {
+    margin: -4px 0 8px;
+    font-size: 0.8rem;
+}
+.token-hint a {
+    color: #4da6ff;
+    text-decoration: none;
+}
+.token-hint a:hover {
+    text-decoration: underline;
+}
 .project-select {
     flex: 1;
     min-width: 200px;
