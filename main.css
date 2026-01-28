@@ -352,6 +352,16 @@ button:disabled {
     display: flex;
     gap: 12px;
     margin-top: 12px;
+    align-items: center;
+}
+.pdf-link {
+    color: #4da6ff;
+    text-decoration: none;
+    font-size: 0.9rem;
+    margin-left: 8px;
+}
+.pdf-link:hover {
+    text-decoration: underline;
 }
 .btn-secondary {
     background: #444;

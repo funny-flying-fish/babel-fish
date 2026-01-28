@@ -20,6 +20,7 @@
     const opDelete = document.getElementById('opDelete');
     const previewBtn = document.getElementById('previewBtn');
     const runExportBtn = document.getElementById('runExportBtn');
+    const downloadPdfLink = document.getElementById('downloadPdfLink');
     const statusLine = document.getElementById('statusLine');
     const previewSection = document.getElementById('previewSection');
     const previewContent = document.getElementById('previewContent');
@@ -40,6 +41,7 @@
     let diffOps = { create: [], update: [], delete: [] };
     let logEntries = [];
     let isRunning = false;
+    let lastExportData = null; // Store data for PDF generation
 
     // === Rate Limiter ===
     let lastRequestTime = 0;
@@ -491,12 +493,140 @@
         }
     }
 
+    // === PDF Generation ===
+    function countWords(text) {
+        if (!text || typeof text !== 'string') return 0;
+        return text.trim().split(/\s+/).filter(w => w.length > 0).length;
+    }
+
+    function generateExportPDF(projectName, fileName, stats, diffData) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
+        const timeStr = now.toTimeString().slice(0, 5); // HH:MM
+        const dateTimeStr = `${dateStr}, ${timeStr}`;
+
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 20;
+        const maxWidth = pageWidth - margin * 2;
+        let y = 20;
+
+        // Title (Project Name)
+        doc.setFontSize(18);
+        doc.setFont('helvetica', 'bold');
+        doc.text(projectName, margin, y);
+        y += 14;
+
+        // Fields
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'normal');
+
+        doc.text(`File: ${fileName}`, margin, y);
+        y += 7;
+
+        doc.text(`Date: ${dateTimeStr}`, margin, y);
+        y += 7;
+
+        doc.text(`Words added: ${stats.wordsAdded}`, margin, y);
+        y += 7;
+
+        doc.text(`Keys added: ${stats.keysAdded}`, margin, y);
+        y += 7;
+
+        doc.text(`Keys removed: ${stats.keysRemoved}`, margin, y);
+        y += 10;
+
+        // Divider line
+        doc.setDrawColor(100, 100, 100);
+        doc.line(margin, y, pageWidth - margin, y);
+        y += 10;
+
+        // Diff details
+        doc.setFontSize(10);
+
+        // Colors
+        const colorDefault = [0, 0, 0];         // Black
+        const colorGreen = [40, 120, 40];       // Dark green
+        const colorRed = [180, 60, 60];         // Dark red
+
+        // Helper function to add wrapped text and handle page breaks
+        function addText(text, options = {}) {
+            const { bold = false, color = colorDefault } = options;
+            doc.setFont('helvetica', bold ? 'bold' : 'normal');
+            doc.setTextColor(...color);
+            const lines = doc.splitTextToSize(text, maxWidth);
+            for (const line of lines) {
+                if (y > 280) {
+                    doc.addPage();
+                    y = 20;
+                }
+                doc.text(line, margin, y);
+                y += 5;
+            }
+            doc.setTextColor(...colorDefault); // Reset color
+        }
+
+        // Create section
+        if (diffData.create && diffData.create.length > 0) {
+            y += 3;
+            addText(`CREATE (${diffData.create.length})`, { bold: true, color: colorGreen });
+            y += 2;
+            diffData.create.forEach(op => {
+                const sourcePreview = op.source_text.length > 80 
+                    ? op.source_text.substring(0, 80) + '...' 
+                    : op.source_text;
+                addText(`• ${op.key_name}: "${sourcePreview}"`, { color: colorGreen });
+            });
+            y += 5;
+        }
+
+        // Update section
+        if (diffData.update && diffData.update.length > 0) {
+            y += 3;
+            addText(`UPDATE (${diffData.update.length})`, { bold: true });
+            y += 2;
+            diffData.update.forEach(op => {
+                const oldPreview = op.old_source.length > 40 
+                    ? op.old_source.substring(0, 40) + '...' 
+                    : op.old_source;
+                const newPreview = op.new_source.length > 40 
+                    ? op.new_source.substring(0, 40) + '...' 
+                    : op.new_source;
+                addText(`• ${op.key_name}:`);
+                addText(`  Old: "${oldPreview}"`);
+                addText(`  New: "${newPreview}"`, { color: colorGreen });
+            });
+            y += 5;
+        }
+
+        // Delete section
+        if (diffData.delete && diffData.delete.length > 0) {
+            y += 3;
+            addText(`DELETE (${diffData.delete.length})`, { bold: true, color: colorRed });
+            y += 2;
+            diffData.delete.forEach(op => {
+                addText(`• ${op.key_name}`, { color: colorRed });
+            });
+        }
+
+        // Generate filename: PROJECT_NAME upd YYYY-MM-DD HH-MM.pdf
+        const safeProjectName = projectName.replace(/[^a-zA-Z0-9\s-]/g, '').trim();
+        const pdfFileName = `${safeProjectName} upd ${dateStr} ${timeStr.replace(':', '-')}.pdf`;
+        
+        doc.save(pdfFileName);
+        addLog('success', `PDF report saved: ${pdfFileName}`);
+    }
+
     // === Event Handlers ===
     async function handlePreview() {
         if (isRunning) return;
         isRunning = true;
         previewBtn.disabled = true;
         runExportBtn.disabled = true;
+        downloadPdfLink.style.display = 'none';
+        lastExportData = null;
         resetLog();
 
         try {
@@ -519,7 +649,20 @@
                 (opUpdate.checked ? diffOps.update.length : 0) +
                 (opDelete.checked ? diffOps.delete.length : 0);
 
-            setStatus(`Preview ready: ${totalOps} operations`, 'success');
+            // Calculate words added (from created keys + new text in updated keys)
+            let wordsToAdd = 0;
+            if (opCreate.checked) {
+                diffOps.create.forEach(op => {
+                    wordsToAdd += countWords(op.source_text);
+                });
+            }
+            if (opUpdate.checked) {
+                diffOps.update.forEach(op => {
+                    wordsToAdd += countWords(op.new_source);
+                });
+            }
+
+            setStatus(`Preview ready: ${totalOps} operations, words added: ${wordsToAdd}`, 'success');
             runExportBtn.disabled = totalOps === 0;
         } catch (err) {
             setStatus(`Error: ${err.message}`, 'error');
@@ -591,6 +734,41 @@
                 await verifyKeys(projectId, keysToVerify);
             }
 
+            // Store data for PDF generation
+            const projectName = projectSelect.options[projectSelect.selectedIndex].text;
+            const fileName = xlsxFile ? xlsxFile.name : 'unknown.xlsx';
+            
+            // Calculate words added (from created keys + new text in updated keys)
+            let wordsAdded = 0;
+            if (opCreate.checked) {
+                diffOps.create.forEach(op => {
+                    wordsAdded += countWords(op.source_text);
+                });
+            }
+            if (opUpdate.checked) {
+                diffOps.update.forEach(op => {
+                    wordsAdded += countWords(op.new_source);
+                });
+            }
+
+            lastExportData = {
+                projectName: projectName,
+                fileName: fileName,
+                stats: {
+                    wordsAdded: wordsAdded,
+                    keysAdded: totalCreated,
+                    keysRemoved: totalDeleted
+                },
+                diffData: {
+                    create: opCreate.checked ? [...diffOps.create] : [],
+                    update: opUpdate.checked ? [...diffOps.update] : [],
+                    delete: opDelete.checked ? [...diffOps.delete] : []
+                }
+            };
+
+            // Show PDF download link
+            downloadPdfLink.style.display = 'inline';
+
             // Clear diff after successful export
             diffOps = { create: [], update: [], delete: [] };
             previewSection.style.display = 'none';
@@ -618,12 +796,26 @@
     previewBtn.addEventListener('click', handlePreview);
     runExportBtn.addEventListener('click', handleRunExport);
 
+    downloadPdfLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (lastExportData) {
+            generateExportPDF(
+                lastExportData.projectName,
+                lastExportData.fileName,
+                lastExportData.stats,
+                lastExportData.diffData
+            );
+        }
+    });
+
     xlsxInput.addEventListener('change', (e) => {
         xlsxFile = e.target.files[0] || null;
         updateButtonStates();
         // Reset preview when file changes
         previewSection.style.display = 'none';
         runExportBtn.disabled = true;
+        downloadPdfLink.style.display = 'none';
+        lastExportData = null;
     });
 
     apiToken.addEventListener('input', updateButtonStates);
@@ -632,6 +824,8 @@
         // Reset preview when project changes
         previewSection.style.display = 'none';
         runExportBtn.disabled = true;
+        downloadPdfLink.style.display = 'none';
+        lastExportData = null;
     });
 
     // Initial state

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Translation Converter</title>
     <script src="vendor/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="main.css">
 </head>
 <body>
@@ -117,6 +118,7 @@
                     <div class="btn-row">
                         <button id="previewBtn" disabled>Preview Diff</button>
                         <button id="runExportBtn" disabled>Run Export</button>
+                        <a href="#" id="downloadPdfLink" class="pdf-link" style="display: none;">Download PDF Report</a>
                     </div>
 
                     <div id="statusLine" class="status-line"></div>
