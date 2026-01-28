@@ -14,7 +14,7 @@
     const apiToken = document.getElementById('apiToken');
     const loadProjectsBtn = document.getElementById('loadProjectsBtn');
     const projectSelect = document.getElementById('projectSelect');
-    const xlsxInput = document.getElementById('xlsxInput');
+    const xlsxInput = document.getElementById('lokaliseXlsxInput');
     const opCreate = document.getElementById('opCreate');
     const opUpdate = document.getElementById('opUpdate');
     const opDelete = document.getElementById('opDelete');
@@ -27,6 +27,11 @@
     const logCount = document.getElementById('logCount');
     const logEmpty = document.getElementById('logEmpty');
     const logList = document.getElementById('logList');
+
+    // Exit early if required elements are not found
+    if (!apiToken || !loadProjectsBtn || !projectSelect || !xlsxInput) {
+        return;
+    }
 
     // === State ===
     let xlsxFile = null;
