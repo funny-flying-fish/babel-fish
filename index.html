@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="main.css">
 </head>
+
 <body>
     <div class="layout">
         <div class="main-column">
@@ -39,7 +41,8 @@
                 <ul class="note-list">
                     <li>Double spaces will be removed.</li>
                     <li>Line breaks will be removed.</li>
-                    <li>The conversion date (YY-MM-DD) will be added automatically and will serve as the print material version.</li>
+                    <li>The conversion date (YY-MM-DD) will be added automatically and will serve as the print material
+                        version.</li>
                     <li><label><input type="checkbox" id="ruleNumeric" checked> Numeric formatting</label></li>
                     <li><label><input type="checkbox" id="ruleUnitSpacing" checked> Unit spacing</label></li>
                     <li><label><input type="checkbox" id="ruleUnitCase" checked> Unit case normalization</label></li>
@@ -49,7 +52,8 @@
                     <li><button type="button" class="link-button" id="openRules">More information</button></li>
                 </ul>
 
-                <p class="note">Default encoding is Mac Roman. If you notice character issues in the output, please try a different encoding option.</p>
+                <p class="note">Default encoding is Mac Roman. If you notice character issues in the output, please try
+                    a different encoding option.</p>
             </div>
 
             <!-- Tab 2: TXT → XLSX -->
@@ -80,7 +84,8 @@
                     <li><label><input type="checkbox" id="ruleLanguageTxt" checked> Language rules</label></li>
                 </ul>
 
-                <p class="note">Default encoding is Mac Roman. If you notice character issues in the output, please try a different encoding option.</p>
+                <p class="note">Default encoding is Mac Roman. If you notice character issues in the output, please try
+                    a different encoding option.</p>
             </div>
 
             <!-- Tab 3: XLSX → Lokalise -->
@@ -96,7 +101,8 @@
                         <input type="password" id="apiToken" class="token-input" placeholder="Enter Lokalise API token">
                         <button id="loadProjectsBtn" class="btn-secondary">Load Projects</button>
                     </div>
-                    <p class="token-hint"><a href="https://app.lokalise.com/profile/#apitokens" target="_blank" rel="noopener">Where can I get it?</a></p>
+                    <p class="token-hint"><a href="https://app.lokalise.com/profile/#apitokens" target="_blank"
+                            rel="noopener">Where can I get it?</a></p>
 
                     <div class="form-row">
                         <label for="projectSelect">Project:</label>
@@ -137,7 +143,6 @@
                 </ul>
             </div>
 
-            <!-- Rules Modal -->
             <div class="modal-overlay" id="rulesModal" aria-hidden="true">
                 <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
                     <div class="modal-header">
@@ -178,7 +183,7 @@
             // Remove active from all buttons and contents
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            
+
             // Add active to clicked button and corresponding content
             btn.classList.add('active');
             const tabId = 'tab-' + tabName;
@@ -215,4 +220,5 @@
         });
     </script>
 </body>
+
 </html>
