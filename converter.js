@@ -250,7 +250,8 @@ function getTxtSettings() {
                 const before = cleaned.slice(0, decimalIndex);
                 const digitsAfter = after.match(/^\d+$/) ? after.length : 0;
 
-                if (!(sepCount === 1 && digitsAfter === 3)) {
+                const beforeDigits = before.replace(/[.,\s]/g, '');
+                if (!(sepCount === 1 && digitsAfter === 3) || beforeDigits === '0') {
                     intPart = before;
                     fracPart = after;
                 }
