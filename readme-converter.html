@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel Fish - File Converter Instructions</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px 30px; background: #fff; }
+        .lang-switch { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .lang-btn { padding: 8px 16px; border: 2px solid #4a69bd; background: white; color: #4a69bd; border-radius: 20px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .lang-btn:hover { background: #f0f4ff; }
+        .lang-btn.active { background: #4a69bd; color: white; }
+        h1 { text-align: center; color: #1a1a2e; font-size: 2.2em; margin-bottom: 30px; }
+        h2 { color: #4a69bd; font-size: 1.4em; margin-top: 35px; margin-bottom: 15px; padding-left: 15px; border-left: 4px solid #4a69bd; }
+        h3 { color: #1a1a2e; font-size: 1.1em; margin-top: 25px; margin-bottom: 10px; }
+        p { margin-bottom: 12px; }
+        .intro-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; }
+        .intro-box h3 { color: white; margin-top: 0; font-size: 1.2em; }
+        .intro-box ul { margin-left: 20px; }
+        .intro-box li { margin-bottom: 8px; }
+        .step-box { background: #f8f9fa; border-radius: 10px; padding: 20px 25px; margin: 20px 0; border-left: 5px solid #4a69bd; }
+        .step-number { display: inline-block; background: #4a69bd; color: white; width: 32px; height: 32px; border-radius: 50%; text-align: center; line-height: 32px; font-weight: bold; margin-right: 12px; }
+        .step-title { font-weight: 600; font-size: 1.1em; color: #1a1a2e; }
+        .step-content { margin-top: 12px; margin-left: 44px; }
+        .warning-box { background: #ffebee; border: 1px solid #ef5350; border-radius: 8px; padding: 15px 20px; margin: 20px 0; }
+        .tip-box { background: #e8f5e9; border: 1px solid #66bb6a; border-radius: 8px; padding: 15px 20px; margin: 20px 0; }
+        ul, ol { margin-left: 25px; margin-bottom: 15px; }
+        li { margin-bottom: 8px; }
+        .diagram { background: #f5f5f5; border: 2px dashed #ccc; border-radius: 10px; padding: 20px; margin: 20px 0; text-align: center; }
+        .diagram-row { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+        .diagram-file { background: #fff; border: 2px solid #4a69bd; border-radius: 8px; padding: 10px 15px; font-weight: 500; }
+        .diagram-arrow { font-size: 1.5em; color: #4a69bd; }
+        .diagram-result { background: #4a69bd; color: white; border-radius: 8px; padding: 12px 20px; font-weight: 600; }
+        .menu-path { font-family: monospace; background: #e8e8e8; padding: 3px 8px; border-radius: 4px; font-size: 0.95em; }
+        code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+        kbd { background: #333; color: white; padding: 2px 8px; border-radius: 4px; font-family: monospace; font-size: 0.85em; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; }
+        th { background: #4a69bd; color: white; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #888; font-size: 0.9em; }
+        .footer a { color: #4a69bd; text-decoration: none; }
+        .lang-ru { display: none; }
+        .lang-en { display: block; }
+        @media print { body { padding: 20px; } .step-box { break-inside: avoid; } .lang-switch { display: none; } }
+        @media (max-width: 600px) { table { font-size: 0.9em; } }
+    </style>
+</head>
+<body>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="switchLang('en')">English</button>
+        <button class="lang-btn" onclick="switchLang('ru')">Russian</button>
+    </div>
+
+    <!-- ENGLISH VERSION -->
+    <div class="lang-en">
+        <h1>Babel Fish — File Converter</h1>
+        
+        <div class="intro-box">
+            <h3>What does this tool do?</h3>
+            <p>Converts translation files between XLSX and TXT formats for InDesign workflows, automatically applying typographic rules.</p>
+            <ul>
+                <li>XLSX → TXT conversion for InDesign import</li>
+                <li>TXT → XLSX conversion for returning edited translations</li>
+                <li>Automatic non-breaking spaces (NBSP) insertion</li>
+                <li>Number and unit formatting by language</li>
+                <li>Multiple encoding support (Mac Roman, UTF-8, Windows-1252)</li>
+            </ul>
+        </div>
+        
+        <div class="diagram">
+            <p style="margin-bottom: 15px; color: #666;"><strong>Workflow:</strong></p>
+            <div class="diagram-row">
+                <div class="diagram-file">Translations.xlsx</div>
+                <div class="diagram-arrow">↓</div>
+                <div class="diagram-result">InDesign-ready .txt</div>
+            </div>
+            <div style="margin: 15px 0; color: #666;">— or —</div>
+            <div class="diagram-row">
+                <div class="diagram-file">Edited.txt</div>
+                <div class="diagram-arrow">↓</div>
+                <div class="diagram-result">Updated .xlsx</div>
+            </div>
+        </div>
+        
+        <h2>How to Access</h2>
+        
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Open Babel Fish in your browser</span>
+            <div class="step-content">
+                <p>Navigate to the Babel Fish web application. The converter opens on the <strong>XLSX → TXT</strong> tab by default.</p>
+            </div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Select the conversion direction</span>
+            <div class="step-content">
+                <p>Use the tabs at the top to switch between:</p>
+                <ul>
+                    <li><strong>XLSX → TXT</strong> — for InDesign import</li>
+                    <li><strong>TXT → XLSX</strong> — for returning to translators</li>
+                </ul>
+            </div>
+        </div>
+        
+        <h2>XLSX → TXT Conversion</h2>
+        
+        <h3>Input file format</h3>
+        <p>The XLSX file should have this structure:</p>
+        <ul>
+            <li><strong>Row 1:</strong> Headers (Label1, Label2, etc.)</li>
+            <li><strong>Column A:</strong> Language codes (en_EN, fr_FR, de_DE, etc.)</li>
+            <li><strong>Other columns:</strong> Translation values</li>
+        </ul>
+        
+        <div class="tip-box">
+            <strong>Tip:</strong> Include a code in square brackets in the filename, e.g., <code>Translations [PROJ-001].xlsx</code>. This code will be added to the output file as a reference.
+        </div>
+        
+        <h3>Step-by-step</h3>
+        
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Select your XLSX file</span>
+            <div class="step-content"><p>Click the file input field and choose your XLSX file with translations.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Choose output encoding</span>
+            <div class="step-content">
+                <p><strong>Mac Roman</strong> is the default encoding. Use UTF-8 or Windows-1252 only if you encounter character display issues.</p>
+            </div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">3</span>
+            <span class="step-title">Configure formatting rules</span>
+            <div class="step-content"><p>Enable or disable the following options:</p></div>
+        </div>
+        
+        <table>
+            <tr><th>Option</th><th>Description</th></tr>
+            <tr><td><strong>Numeric formatting</strong></td><td>Formats numbers according to language rules (thousand separators, decimals)</td></tr>
+            <tr><td><strong>Unit spacing</strong></td><td>Adds NBSP between numbers and units (e.g., 100 km → 100 km)</td></tr>
+            <tr><td><strong>Unit case normalization</strong></td><td>Fixes unit capitalization (kw → kW, KWH → kWh)</td></tr>
+            <tr><td><strong>Strip outer quotes</strong></td><td>Removes enclosing quotes from values</td></tr>
+            <tr><td><strong>Global rules</strong></td><td>NBSP after initials, abbreviations, in dates</td></tr>
+            <tr><td><strong>Language rules</strong></td><td>Language-specific NBSP rules (articles, prepositions, punctuation)</td></tr>
+        </table>
+        
+        <div class="step-box">
+            <span class="step-number">4</span>
+            <span class="step-title">Click "Convert"</span>
+            <div class="step-content"><p>The conversion will run and display all changes in the log panel on the right.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">5</span>
+            <span class="step-title">Download the result</span>
+            <div class="step-content"><p>Click the download link to save your TXT file. The file is ready for InDesign import.</p></div>
+        </div>
+        
+        <h3>Output file format</h3>
+        <p>The TXT file will have:</p>
+        <ul>
+            <li><strong>Transposed data:</strong> Languages become rows, labels become columns</li>
+            <li><strong>Code column:</strong> First column with the code from filename</li>
+            <li><strong>Date column:</strong> Second column with conversion date (YY-MM-DD)</li>
+            <li><strong>Tab-separated values</strong></li>
+            <li><strong>Language codes:</strong> Converted to 2-letter format (en_EN → EN)</li>
+        </ul>
+        
+        <h2>TXT → XLSX Conversion</h2>
+        
+        <p>This is a secondary feature for rare cases when you need to convert TXT files back to XLSX format (e.g., returning edited translations to translators). The workflow is similar to XLSX → TXT but in reverse.</p>
+        
+        <h2>Supported Languages</h2>
+        
+        <table>
+            <tr><th>Language</th><th>Code</th><th>Special rules</th></tr>
+            <tr><td>English</td><td>EN</td><td>NBSP after articles (a, an, the), no space before %</td></tr>
+            <tr><td>French</td><td>FR</td><td>NBSP before ; : ! ?, after short words, narrow space normalization</td></tr>
+            <tr><td>German</td><td>DE</td><td>NBSP after articles, titles (Dr., Prof.)</td></tr>
+            <tr><td>Spanish</td><td>ES</td><td>NBSP after short words, 4-digit numbers without separator</td></tr>
+            <tr><td>Dutch</td><td>NL</td><td>NBSP after articles, currency symbol before number</td></tr>
+        </table>
+        
+        <h2>Supported Units</h2>
+        <ul>
+            <li><strong>Power:</strong> W, kW, MW, GW, hp, PS, CV</li>
+            <li><strong>Electrical:</strong> V, kV, mV, A, mA, Hz, kHz, MHz, GHz, Ohm, Ω</li>
+            <li><strong>Energy:</strong> Wh, kWh, MWh, J, kJ, F, µF, nF</li>
+            <li><strong>Force:</strong> N, kN, kgf, Pa, kPa, bar, Nm</li>
+            <li><strong>Length:</strong> km, m, cm, mm</li>
+            <li><strong>Mass:</strong> kg, g, mg</li>
+            <li><strong>Volume:</strong> l, ml</li>
+            <li><strong>Composite:</strong> km/h, m/s, kg/m³, etc.</li>
+        </ul>
+        
+        <h2>FAQ</h2>
+        
+        <h3>Why do I see strange characters in the output?</h3>
+        <p>This usually means the encoding is wrong. Try a different encoding option. UTF-8 preserves all characters but may not be compatible with older InDesign versions.</p>
+        
+        <h3>What happens to line breaks in cells?</h3>
+        <p>Line breaks are automatically converted to spaces. Double spaces are also normalized to single spaces.</p>
+        
+        <h3>Can I undo the formatting?</h3>
+        <p>No. The original file is not modified, so you can always re-convert with different settings.</p>
+        
+        <h3>What if my file has no code in brackets?</h3>
+        <p>The converter will use "not-set" as the code and show a warning in the log.</p>
+        
+        <h3>Are NBSP characters visible?</h3>
+        <p>NBSP looks like a regular space but prevents line breaks. In InDesign, you can see them via <span class="menu-path">Type → Show Hidden Characters</span>.</p>
+        
+        <h2>Tips</h2>
+        <div class="tip-box"><strong>Tip:</strong> The conversion log shows every change made. Review it to ensure the formatting is correct.</div>
+        <div class="tip-box"><strong>Tip:</strong> If your text contains characters outside Western European languages, use UTF-8 encoding.</div>
+        <div class="tip-box"><strong>Tip:</strong> Always include a project code in square brackets in your filename — it helps track versions.</div>
+        <div class="warning-box"><strong>Warning:</strong> When using Mac Roman or Windows-1252 encoding, non-breaking hyphens will be converted to regular hyphens. Use UTF-8 to preserve them.</div>
+    </div>
+
+    <!-- RUSSIAN VERSION -->
+    <div class="lang-ru">
+        <h1>Babel Fish — Конвертер файлов</h1>
+        
+        <div class="intro-box">
+            <h3>Что делает этот инструмент?</h3>
+            <p>Конвертирует файлы переводов между форматами XLSX и TXT для работы с InDesign, автоматически применяя типографские правила.</p>
+            <ul>
+                <li>Конвертация XLSX → TXT для импорта в InDesign</li>
+                <li>Конвертация TXT → XLSX для возврата отредактированных переводов</li>
+                <li>Автоматическая расстановка неразрывных пробелов (NBSP)</li>
+                <li>Форматирование чисел и единиц измерения по языкам</li>
+                <li>Поддержка разных кодировок (Mac Roman, UTF-8, Windows-1252)</li>
+            </ul>
+        </div>
+        
+        <div class="diagram">
+            <p style="margin-bottom: 15px; color: #666;"><strong>Рабочий процесс:</strong></p>
+            <div class="diagram-row">
+                <div class="diagram-file">Translations.xlsx</div>
+                <div class="diagram-arrow">↓</div>
+                <div class="diagram-result">.txt для InDesign</div>
+            </div>
+            <div style="margin: 15px 0; color: #666;">— или —</div>
+            <div class="diagram-row">
+                <div class="diagram-file">Edited.txt</div>
+                <div class="diagram-arrow">↓</div>
+                <div class="diagram-result">Обновлённый .xlsx</div>
+            </div>
+        </div>
+        
+        <h2>Как открыть</h2>
+        
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Откройте Babel Fish в браузере</span>
+            <div class="step-content"><p>Перейдите в веб-приложение Babel Fish. По умолчанию открывается вкладка <strong>XLSX → TXT</strong>.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Выберите направление конвертации</span>
+            <div class="step-content">
+                <p>Используйте вкладки вверху для переключения между:</p>
+                <ul>
+                    <li><strong>XLSX → TXT</strong> — для импорта в InDesign</li>
+                    <li><strong>TXT → XLSX</strong> — для возврата переводчикам</li>
+                </ul>
+            </div>
+        </div>
+        
+        <h2>Конвертация XLSX → TXT</h2>
+        
+        <h3>Формат входного файла</h3>
+        <p>XLSX файл должен иметь такую структуру:</p>
+        <ul>
+            <li><strong>Строка 1:</strong> Заголовки (Label1, Label2 и т.д.)</li>
+            <li><strong>Колонка A:</strong> Коды языков (en_EN, fr_FR, de_DE и т.д.)</li>
+            <li><strong>Остальные колонки:</strong> Значения переводов</li>
+        </ul>
+        
+        <div class="tip-box">
+            <strong>Совет:</strong> Включите код в квадратных скобках в название файла, например <code>Translations [PROJ-001].xlsx</code>. Этот код будет добавлен в выходной файл как референс.
+        </div>
+        
+        <h3>Пошаговая инструкция</h3>
+        
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Выберите XLSX файл</span>
+            <div class="step-content"><p>Нажмите на поле выбора файла и выберите XLSX файл с переводами.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Выберите кодировку вывода</span>
+            <div class="step-content">
+                <p><strong>Mac Roman</strong> — кодировка по умолчанию. Используйте UTF-8 или Windows-1252 только при проблемах с отображением символов.</p>
+            </div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">3</span>
+            <span class="step-title">Настройте правила форматирования</span>
+            <div class="step-content"><p>Включите или отключите следующие опции:</p></div>
+        </div>
+        
+        <table>
+            <tr><th>Опция</th><th>Описание</th></tr>
+            <tr><td><strong>Numeric formatting</strong></td><td>Форматирует числа по правилам языка (разделители тысяч, десятичные)</td></tr>
+            <tr><td><strong>Unit spacing</strong></td><td>Добавляет NBSP между числами и единицами (100 km → 100 km)</td></tr>
+            <tr><td><strong>Unit case normalization</strong></td><td>Исправляет регистр единиц (kw → kW, KWH → kWh)</td></tr>
+            <tr><td><strong>Strip outer quotes</strong></td><td>Удаляет внешние кавычки из значений</td></tr>
+            <tr><td><strong>Global rules</strong></td><td>NBSP после инициалов, аббревиатур, в датах</td></tr>
+            <tr><td><strong>Language rules</strong></td><td>Языковые правила NBSP (артикли, предлоги, пунктуация)</td></tr>
+        </table>
+        
+        <div class="step-box">
+            <span class="step-number">4</span>
+            <span class="step-title">Нажмите «Convert»</span>
+            <div class="step-content"><p>Конвертация запустится и отобразит все изменения в панели логов справа.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">5</span>
+            <span class="step-title">Скачайте результат</span>
+            <div class="step-content"><p>Нажмите на ссылку скачивания, чтобы сохранить TXT файл. Файл готов для импорта в InDesign.</p></div>
+        </div>
+        
+        <h3>Формат выходного файла</h3>
+        <p>TXT файл будет содержать:</p>
+        <ul>
+            <li><strong>Транспонированные данные:</strong> Языки становятся строками, метки — колонками</li>
+            <li><strong>Колонка code:</strong> Первая колонка с кодом из имени файла</li>
+            <li><strong>Колонка Date:</strong> Вторая колонка с датой конвертации (YY-MM-DD)</li>
+            <li><strong>Значения разделены табуляцией</strong></li>
+            <li><strong>Коды языков:</strong> Преобразованы в 2-буквенный формат (en_EN → EN)</li>
+        </ul>
+        
+        <h2>Конвертация TXT → XLSX</h2>
+        
+        <p>Второстепенная функция для редких случаев, когда нужна обратная конвертация из TXT в XLSX (например, для возврата отредактированных переводов переводчикам). Процесс аналогичен XLSX → TXT, но в обратном направлении.</p>
+        
+        <h2>Поддерживаемые языки</h2>
+        
+        <table>
+            <tr><th>Язык</th><th>Код</th><th>Особые правила</th></tr>
+            <tr><td>Английский</td><td>EN</td><td>NBSP после артиклей (a, an, the), без пробела перед %</td></tr>
+            <tr><td>Французский</td><td>FR</td><td>NBSP перед ; : ! ?, после коротких слов, нормализация узких пробелов</td></tr>
+            <tr><td>Немецкий</td><td>DE</td><td>NBSP после артиклей, титулов (Dr., Prof.)</td></tr>
+            <tr><td>Испанский</td><td>ES</td><td>NBSP после коротких слов, 4-значные числа без разделителя</td></tr>
+            <tr><td>Нидерландский</td><td>NL</td><td>NBSP после артиклей, символ валюты перед числом</td></tr>
+        </table>
+        
+        <h2>Поддерживаемые единицы</h2>
+        <ul>
+            <li><strong>Мощность:</strong> W, kW, MW, GW, hp, PS, CV</li>
+            <li><strong>Электрические:</strong> V, kV, mV, A, mA, Hz, kHz, MHz, GHz, Ohm, Ω</li>
+            <li><strong>Энергия:</strong> Wh, kWh, MWh, J, kJ, F, µF, nF</li>
+            <li><strong>Сила:</strong> N, kN, kgf, Pa, kPa, bar, Nm</li>
+            <li><strong>Длина:</strong> km, m, cm, mm</li>
+            <li><strong>Масса:</strong> kg, g, mg</li>
+            <li><strong>Объём:</strong> l, ml</li>
+            <li><strong>Составные:</strong> km/h, m/s, kg/m³ и т.д.</li>
+        </ul>
+        
+        <h2>FAQ</h2>
+        
+        <h3>Почему в выходном файле странные символы?</h3>
+        <p>Скорее всего, неправильная кодировка. Попробуйте другую опцию кодировки. UTF-8 сохраняет все символы, но может быть несовместим со старыми версиями InDesign.</p>
+        
+        <h3>Что происходит с переносами строк в ячейках?</h3>
+        <p>Переносы строк автоматически заменяются на пробелы. Двойные пробелы также нормализуются до одинарных.</p>
+        
+        <h3>Можно ли отменить форматирование?</h3>
+        <p>Нет. Исходный файл не изменяется, поэтому вы всегда можете переконвертировать с другими настройками.</p>
+        
+        <h3>Что если в имени файла нет кода в скобках?</h3>
+        <p>Конвертер использует «not-set» как код и покажет предупреждение в логе.</p>
+        
+        <h3>Видны ли символы NBSP?</h3>
+        <p>NBSP выглядит как обычный пробел, но предотвращает перенос строки. В InDesign их можно увидеть через <span class="menu-path">Type → Show Hidden Characters</span>.</p>
+        
+        <h2>Советы</h2>
+        <div class="tip-box"><strong>Совет:</strong> Лог конвертации показывает каждое изменение. Просмотрите его, чтобы убедиться в правильности форматирования.</div>
+        <div class="tip-box"><strong>Совет:</strong> Если ваш текст содержит символы за пределами западноевропейских языков, используйте кодировку UTF-8.</div>
+        <div class="tip-box"><strong>Совет:</strong> Всегда включайте код проекта в квадратных скобках в имя файла — это помогает отслеживать версии.</div>
+        <div class="warning-box"><strong>Внимание:</strong> При использовании кодировок Mac Roman или Windows-1252 неразрывные дефисы будут преобразованы в обычные дефисы. Используйте UTF-8 для их сохранения.</div>
+    </div>
+
+    <div class="footer">
+        <p>Babel Fish — Translation File Converter | <a href="mailto:aleksey.shepelin@destinus.eu">Shepelin Aleksei</a></p>
+        <p class="lang-en">To save as PDF: press <kbd>Cmd/Ctrl + P</kbd> → "Save as PDF"</p>
+        <p class="lang-ru">Для сохранения в PDF: нажмите <kbd>Cmd/Ctrl + P</kbd> → «Сохранить как PDF»</p>
+    </div>
+
+    <script>
+        function switchLang(lang) {
+            const en = document.querySelectorAll('.lang-en');
+            const ru = document.querySelectorAll('.lang-ru');
+            const btns = document.querySelectorAll('.lang-btn');
+            btns.forEach(b => b.classList.remove('active'));
+            if (lang === 'en') {
+                en.forEach(el => el.style.display = 'block');
+                ru.forEach(el => el.style.display = 'none');
+                btns[0].classList.add('active');
+            } else {
+                en.forEach(el => el.style.display = 'none');
+                ru.forEach(el => el.style.display = 'block');
+                btns[1].classList.add('active');
+            }
+        }
+        switchLang('en');
+    </script>
+</body>
+</html>

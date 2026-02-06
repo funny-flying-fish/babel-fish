@@ -851,7 +851,7 @@ function xlsxToTxt(data, options = {}) {
     const replaceNonBreakingHyphen = Boolean(options.replaceNonBreakingHyphen);
     let foundNonBreakingHyphen = false;
     if (options.codeHasValue === false) {
-        addLogError('No value in [] in filename. Using code = not-set.');
+        addLogNotice('No value in [] in filename. Using code = not-set.');
     }
 
     // Transpose: now rows = languages, cols = variables

@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel Fish - Lokalise Export Instructions</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px 30px; background: #fff; }
+        .lang-switch { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .lang-btn { padding: 8px 16px; border: 2px solid #4a69bd; background: white; color: #4a69bd; border-radius: 20px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .lang-btn:hover { background: #f0f4ff; }
+        .lang-btn.active { background: #4a69bd; color: white; }
+        h1 { text-align: center; color: #1a1a2e; font-size: 2.2em; margin-bottom: 30px; }
+        h2 { color: #4a69bd; font-size: 1.4em; margin-top: 35px; margin-bottom: 15px; padding-left: 15px; border-left: 4px solid #4a69bd; }
+        h3 { color: #1a1a2e; font-size: 1.1em; margin-top: 25px; margin-bottom: 10px; }
+        p { margin-bottom: 12px; }
+        a { color: #4a69bd; }
+        .intro-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; }
+        .intro-box h3 { color: white; margin-top: 0; font-size: 1.2em; }
+        .intro-box ul { margin-left: 20px; }
+        .intro-box li { margin-bottom: 8px; }
+        .step-box { background: #f8f9fa; border-radius: 10px; padding: 20px 25px; margin: 20px 0; border-left: 5px solid #4a69bd; }
+        .step-number { display: inline-block; background: #4a69bd; color: white; width: 32px; height: 32px; border-radius: 50%; text-align: center; line-height: 32px; font-weight: bold; margin-right: 12px; }
+        .step-title { font-weight: 600; font-size: 1.1em; color: #1a1a2e; }
+        .step-content { margin-top: 12px; margin-left: 44px; }
+        .option-box { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px 20px; margin: 15px 0; }
+        .option-box.blue { background: #e3f2fd; border-color: #2196f3; }
+        .option-box.green { background: #e8f5e9; border-color: #4caf50; }
+        .option-box.red { background: #ffebee; border-color: #ef5350; }
+        .option-title { font-weight: 600; margin-bottom: 8px; }
+        .warning-box { background: #ffebee; border: 1px solid #ef5350; border-radius: 8px; padding: 15px 20px; margin: 20px 0; }
+        .tip-box { background: #e8f5e9; border: 1px solid #66bb6a; border-radius: 8px; padding: 15px 20px; margin: 20px 0; }
+        ul, ol { margin-left: 25px; margin-bottom: 15px; }
+        li { margin-bottom: 8px; }
+        .diagram { background: #f5f5f5; border: 2px dashed #ccc; border-radius: 10px; padding: 20px; margin: 20px 0; text-align: center; }
+        .diagram-row { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+        .diagram-file { background: #fff; border: 2px solid #4a69bd; border-radius: 8px; padding: 10px 15px; font-weight: 500; }
+        .diagram-arrow { font-size: 1.5em; color: #4a69bd; }
+        .diagram-result { background: #4a69bd; color: white; border-radius: 8px; padding: 12px 20px; font-weight: 600; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; }
+        th { background: #4a69bd; color: white; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        kbd { background: #333; color: white; padding: 2px 8px; border-radius: 4px; font-family: monospace; font-size: 0.85em; }
+        .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #888; font-size: 0.9em; }
+        .footer a { color: #4a69bd; text-decoration: none; }
+        .lang-ru { display: none; }
+        .lang-en { display: block; }
+        @media print { body { padding: 20px; } .step-box { break-inside: avoid; } .lang-switch { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="switchLang('en')">English</button>
+        <button class="lang-btn" onclick="switchLang('ru')">Russian</button>
+    </div>
+
+    <!-- ENGLISH VERSION -->
+    <div class="lang-en">
+        <h1>Babel Fish — Lokalise Export</h1>
+        
+        <div class="intro-box">
+            <h3>What does this tool do?</h3>
+            <p>Synchronizes translation keys and source text (EN) from an XLSX file with a Lokalise project.</p>
+            <ul>
+                <li>Compare XLSX keys with Lokalise project</li>
+                <li>Create new keys with source translations</li>
+                <li>Update existing source text (EN)</li>
+                <li>Delete keys missing from the file</li>
+                <li>Generate PDF reports of all changes</li>
+            </ul>
+        </div>
+        
+        <div class="diagram">
+            <p style="margin-bottom: 15px; color: #666;"><strong>How it works:</strong></p>
+            <div class="diagram-row">
+                <div class="diagram-file">Keys.xlsx</div>
+                <div class="diagram-arrow">↔</div>
+                <div class="diagram-file">Lokalise Project</div>
+            </div>
+            <div class="diagram-arrow">↓</div>
+            <div class="diagram-row">
+                <div class="diagram-result">Synced keys + PDF report</div>
+            </div>
+        </div>
+        
+        <h2>Getting Your API Token</h2>
+        
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Open Lokalise settings</span>
+            <div class="step-content">
+                <p>Go to <a href="https://app.lokalise.com/profile/#apitokens" target="_blank">app.lokalise.com/profile/#apitokens</a></p>
+            </div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Generate a new token</span>
+            <div class="step-content">
+                <p>Click <strong>Generate new token</strong>, give it a name (e.g., "Babel Fish"), and copy the token.</p>
+            </div>
+        </div>
+        
+        <div class="warning-box">
+            <strong>Warning:</strong> Keep your token secure! The token provides full access to your Lokalise projects. Never share it publicly.
+        </div>
+        
+        <div class="tip-box">
+            <strong>Tip:</strong> Babel Fish does not store your API token anywhere. You need to enter it each time.
+        </div>
+        
+        <h2>XLSX File Format</h2>
+        
+        <p>Your XLSX file must have this structure:</p>
+        
+        <table>
+            <tr><th>Column A</th><th>Column B</th></tr>
+            <tr><td>Key name (header)</td><td>Source text (header)</td></tr>
+            <tr><td>welcome_message</td><td>Welcome to our app!</td></tr>
+            <tr><td>button_submit</td><td>Submit</td></tr>
+        </table>
+        
+        <ul>
+            <li><strong>Row 1:</strong> Headers (will be skipped)</li>
+            <li><strong>Column A:</strong> Key names (unique identifiers)</li>
+            <li><strong>Column B:</strong> Source text in English</li>
+        </ul>
+        
+        <h2>Step-by-Step Guide</h2>
+        
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Open the Lokalise tab</span>
+            <div class="step-content"><p>In Babel Fish, click the <strong>XLSX → Lokalise</strong> tab.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Enter your API token</span>
+            <div class="step-content"><p>Paste your Lokalise API token in the <strong>API Token</strong> field.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">3</span>
+            <span class="step-title">Load projects</span>
+            <div class="step-content"><p>Click <strong>Load Projects</strong>. The tool will fetch all projects available with your token.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">4</span>
+            <span class="step-title">Select a project</span>
+            <div class="step-content"><p>Choose the target Lokalise project from the dropdown.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">5</span>
+            <span class="step-title">Upload your XLSX file</span>
+            <div class="step-content"><p>Click the file input and select your XLSX file with keys and source text.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">6</span>
+            <span class="step-title">Choose operations</span>
+            <div class="step-content"><p>Select which operations to perform:</p></div>
+        </div>
+        
+        <div class="option-box green">
+            <div class="option-title">Create new keys</div>
+            <p>Keys in your file that don't exist in Lokalise will be created with their source text.</p>
+        </div>
+        
+        <div class="option-box blue">
+            <div class="option-title">Update source (EN)</div>
+            <p>Keys that exist in both but have different source text will be updated in Lokalise.</p>
+        </div>
+        
+        <div class="option-box red">
+            <div class="option-title">Delete missing keys</div>
+            <p>Keys in Lokalise that are NOT in your file will be deleted. <strong>Use with caution!</strong></p>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">7</span>
+            <span class="step-title">Preview changes</span>
+            <div class="step-content"><p>Click <strong>Preview Diff</strong> to see what changes will be made without applying them.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">8</span>
+            <span class="step-title">Run the export</span>
+            <div class="step-content"><p>If the preview looks correct, click <strong>Run Export</strong>. Confirm the action in the dialog.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">9</span>
+            <span class="step-title">Download PDF report</span>
+            <div class="step-content"><p>After export completes, click <strong>Download PDF Report</strong> to save a summary of all changes.</p></div>
+        </div>
+        
+        <h2>Understanding the Preview</h2>
+        <h3>Create (green)</h3><p>New keys that will be added to Lokalise.</p>
+        <h3>Update (blue)</h3><p>Existing keys with changed source text. Shows old value → new value.</p>
+        <h3>Delete (red)</h3><p>Keys that exist in Lokalise but not in your file.</p>
+        
+        <h2>PDF Report</h2>
+        <p>The PDF report includes: project name, source filename, export date, words added, keys added/removed, full list of changes.</p>
+        
+        <h2>FAQ</h2>
+        <h3>What happens to translations in other languages?</h3>
+        <p>Only the English (EN) source text is affected. Translations in other languages remain unchanged.</p>
+        
+        <h3>Can I undo an export?</h3>
+        <p>No. Changes in Lokalise are immediate. Check your project's activity log for history.</p>
+        
+        <h3>Why is my project not showing?</h3>
+        <p>Make sure your API token has access to the project.</p>
+        
+        <h2>Best Practices</h2>
+        <div class="tip-box"><strong>Tip:</strong> Always use Preview Diff before running the export.</div>
+        <div class="tip-box"><strong>Tip:</strong> Only enable "Delete missing keys" when you're certain the XLSX file contains ALL keys.</div>
+        <div class="warning-box"><strong>Warning:</strong> For production projects, test the export on a copy first.</div>
+    </div>
+
+    <!-- RUSSIAN VERSION -->
+    <div class="lang-ru">
+        <h1>Babel Fish — Экспорт в Lokalise</h1>
+        
+        <div class="intro-box">
+            <h3>Что делает этот инструмент?</h3>
+            <p>Синхронизирует ключи переводов и исходный текст (EN) из XLSX файла с проектом Lokalise.</p>
+            <ul>
+                <li>Сравнение ключей XLSX с проектом Lokalise</li>
+                <li>Создание новых ключей с исходными переводами</li>
+                <li>Обновление существующего исходного текста (EN)</li>
+                <li>Удаление ключей, отсутствующих в файле</li>
+                <li>Генерация PDF-отчётов обо всех изменениях</li>
+            </ul>
+        </div>
+        
+        <div class="diagram">
+            <p style="margin-bottom: 15px; color: #666;"><strong>Как это работает:</strong></p>
+            <div class="diagram-row">
+                <div class="diagram-file">Keys.xlsx</div>
+                <div class="diagram-arrow">↔</div>
+                <div class="diagram-file">Проект Lokalise</div>
+            </div>
+            <div class="diagram-arrow">↓</div>
+            <div class="diagram-row">
+                <div class="diagram-result">Синхронизированные ключи + PDF-отчёт</div>
+            </div>
+        </div>
+        
+        <h2>Получение API-токена</h2>
+        
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Откройте настройки Lokalise</span>
+            <div class="step-content"><p>Перейдите на <a href="https://app.lokalise.com/profile/#apitokens" target="_blank">app.lokalise.com/profile/#apitokens</a></p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Сгенерируйте новый токен</span>
+            <div class="step-content"><p>Нажмите <strong>Generate new token</strong>, дайте ему имя и скопируйте токен.</p></div>
+        </div>
+        
+        <div class="warning-box">
+            <strong>Внимание:</strong> Храните токен в безопасности! Токен предоставляет полный доступ к вашим проектам.
+        </div>
+        
+        <div class="tip-box">
+            <strong>Совет:</strong> Babel Fish не хранит ваш API-токен. Его нужно вводить каждый раз.
+        </div>
+        
+        <h2>Формат XLSX файла</h2>
+        
+        <table>
+            <tr><th>Колонка A</th><th>Колонка B</th></tr>
+            <tr><td>Имя ключа (заголовок)</td><td>Исходный текст (заголовок)</td></tr>
+            <tr><td>welcome_message</td><td>Welcome to our app!</td></tr>
+            <tr><td>button_submit</td><td>Submit</td></tr>
+        </table>
+        
+        <ul>
+            <li><strong>Строка 1:</strong> Заголовки (будут пропущены)</li>
+            <li><strong>Колонка A:</strong> Имена ключей</li>
+            <li><strong>Колонка B:</strong> Исходный текст на английском</li>
+        </ul>
+        
+        <h2>Пошаговая инструкция</h2>
+        
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Откройте вкладку Lokalise</span>
+            <div class="step-content"><p>В Babel Fish нажмите на вкладку <strong>XLSX → Lokalise</strong>.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Введите API-токен</span>
+            <div class="step-content"><p>Вставьте ваш API-токен Lokalise в поле <strong>API Token</strong>.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">3</span>
+            <span class="step-title">Загрузите проекты</span>
+            <div class="step-content"><p>Нажмите <strong>Load Projects</strong>. Инструмент загрузит все доступные проекты.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">4</span>
+            <span class="step-title">Выберите проект</span>
+            <div class="step-content"><p>Выберите целевой проект Lokalise из списка.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">5</span>
+            <span class="step-title">Загрузите XLSX файл</span>
+            <div class="step-content"><p>Выберите XLSX файл с ключами и исходным текстом.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">6</span>
+            <span class="step-title">Выберите операции</span>
+            <div class="step-content"><p>Выберите, какие операции выполнить:</p></div>
+        </div>
+        
+        <div class="option-box green">
+            <div class="option-title">Create new keys</div>
+            <p>Ключи из вашего файла, которых нет в Lokalise, будут созданы.</p>
+        </div>
+        
+        <div class="option-box blue">
+            <div class="option-title">Update source (EN)</div>
+            <p>Ключи с изменённым исходным текстом будут обновлены.</p>
+        </div>
+        
+        <div class="option-box red">
+            <div class="option-title">Delete missing keys</div>
+            <p>Ключи в Lokalise, которых НЕТ в вашем файле, будут удалены. <strong>Используйте осторожно!</strong></p>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">7</span>
+            <span class="step-title">Предпросмотр изменений</span>
+            <div class="step-content"><p>Нажмите <strong>Preview Diff</strong>, чтобы увидеть изменения без их применения.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">8</span>
+            <span class="step-title">Запустите экспорт</span>
+            <div class="step-content"><p>Если предпросмотр корректен, нажмите <strong>Run Export</strong>. Подтвердите действие.</p></div>
+        </div>
+        
+        <div class="step-box">
+            <span class="step-number">9</span>
+            <span class="step-title">Скачайте PDF-отчёт</span>
+            <div class="step-content"><p>После завершения нажмите <strong>Download PDF Report</strong>, чтобы сохранить сводку.</p></div>
+        </div>
+        
+        <h2>Понимание предпросмотра</h2>
+        <h3>Create (зелёный)</h3><p>Новые ключи, которые будут добавлены.</p>
+        <h3>Update (синий)</h3><p>Ключи с изменённым текстом. Показывает старое → новое.</p>
+        <h3>Delete (красный)</h3><p>Ключи, которые есть в Lokalise, но нет в файле.</p>
+        
+        <h2>FAQ</h2>
+        <h3>Что происходит с переводами на других языках?</h3>
+        <p>Затрагивается только английский (EN) исходный текст. Переводы на других языках остаются без изменений.</p>
+        
+        <h3>Можно ли отменить экспорт?</h3>
+        <p>Нет. Изменения в Lokalise мгновенны. Проверьте журнал активности проекта.</p>
+        
+        <h2>Лучшие практики</h2>
+        <div class="tip-box"><strong>Совет:</strong> Всегда используйте Preview Diff перед запуском экспорта.</div>
+        <div class="tip-box"><strong>Совет:</strong> Включайте «Delete missing keys» только когда уверены, что XLSX содержит ВСЕ ключи.</div>
+        <div class="warning-box"><strong>Внимание:</strong> Для продакшн-проектов сначала протестируйте на копии.</div>
+    </div>
+
+    <div class="footer">
+        <p>Babel Fish — Lokalise Export | <a href="mailto:aleksey.shepelin@destinus.eu">Shepelin Aleksei</a></p>
+        <p class="lang-en">To save as PDF: press <kbd>Cmd/Ctrl + P</kbd> → "Save as PDF"</p>
+        <p class="lang-ru">Для сохранения в PDF: нажмите <kbd>Cmd/Ctrl + P</kbd> → «Сохранить как PDF»</p>
+    </div>
+
+    <script>
+        function switchLang(lang) {
+            const en = document.querySelectorAll('.lang-en');
+            const ru = document.querySelectorAll('.lang-ru');
+            const btns = document.querySelectorAll('.lang-btn');
+            btns.forEach(b => b.classList.remove('active'));
+            if (lang === 'en') {
+                en.forEach(el => el.style.display = 'block');
+                ru.forEach(el => el.style.display = 'none');
+                btns[0].classList.add('active');
+            } else {
+                en.forEach(el => el.style.display = 'none');
+                ru.forEach(el => el.style.display = 'block');
+                btns[1].classList.add('active');
+            }
+        }
+        switchLang('en');
+    </script>
+</body>
+</html>
