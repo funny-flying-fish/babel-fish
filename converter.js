@@ -408,6 +408,7 @@ const ruleUnitCaseTxt = document.getElementById('ruleUnitCaseTxt');
 const ruleStripQuotesTxt = document.getElementById('ruleStripQuotesTxt');
 const ruleGlobalTxt = document.getElementById('ruleGlobalTxt');
 const ruleLanguageTxt = document.getElementById('ruleLanguageTxt');
+const ruleDuplicateCheck = document.getElementById('ruleDuplicateCheck');
 const openRules = document.getElementById('openRules');
 const rulesModal = document.getElementById('rulesModal');
 const closeRules = document.getElementById('closeRules');
@@ -843,6 +844,45 @@ function normalizeTxtCell(value, logger, context, langCode, options = {}) {
     return stripOuterQuotes(normalized, settings.stripOuterQuotes, logger, context);
 }
 
+// Language code detection for key row/column
+const KNOWN_LANG_CODES = new Set([
+    'EN', 'FR', 'DE', 'ES', 'NL', 'IT', 'PT', 'RU', 'PL', 'CS',
+    'SK', 'HU', 'RO', 'BG', 'HR', 'SL', 'SR', 'BS', 'MK', 'SQ',
+    'EL', 'TR', 'DA', 'NO', 'SV', 'FI', 'ET', 'LV', 'LT', 'GA',
+    'CY', 'MT', 'EU', 'CA', 'GL', 'JA', 'ZH', 'KO', 'AR', 'HE',
+    'HI', 'TH', 'VI', 'ID', 'MS', 'TL', 'SW', 'UK', 'BE'
+]);
+
+function isLanguageCode(str) {
+    if (!str) return false;
+    const trimmed = String(str).trim();
+    // Locale format: en_EN, fr_FR, etc. — very reliable
+    if (/^[a-z]{2}_[A-Z]{2}$/.test(trimmed)) return true;
+    // Short format: EN, FR — validate against known codes
+    const upper = trimmed.toUpperCase();
+    if (/^[A-Z]{2}$/.test(trimmed) && KNOWN_LANG_CODES.has(upper)) return true;
+    return false;
+}
+
+function hasLanguageKeyRow(data) {
+    if (!data || data.length === 0) return false;
+    const firstRow = data[0];
+    // Check cells from index 1 onwards (index 0 is the key/label column header)
+    for (let i = 1; i < firstRow.length; i++) {
+        if (isLanguageCode(firstRow[i])) return true;
+    }
+    return false;
+}
+
+function hasLanguageKeyColumn(data, colIndex) {
+    if (!data || data.length <= 1) return false;
+    // Check data rows (skip header row at index 0)
+    for (let i = 1; i < data.length; i++) {
+        if (data[i] && isLanguageCode(data[i][colIndex])) return true;
+    }
+    return false;
+}
+
 // Convert XLSX data to TXT format
 function xlsxToTxt(data, options = {}) {
     // XLSX: rows = variables (Label1, Label2...), cols = languages
@@ -853,6 +893,17 @@ function xlsxToTxt(data, options = {}) {
     let foundNonBreakingHyphen = false;
     if (options.codeHasValue === false) {
         addLogNotice('No value in [] in filename. Using code = not-set.');
+    }
+
+    // Check if XLSX has a language key row (row 0 should have language codes)
+    if (!hasLanguageKeyRow(data)) {
+        const maxCols = data.length > 0 ? data.reduce((max, row) => Math.max(max, row.length), 0) : 2;
+        const keyRow = [''];
+        for (let i = 1; i < maxCols; i++) {
+            keyRow.push('en_EN');
+        }
+        data.unshift(keyRow);
+        addLogNotice('No language key row found in XLSX. Added default language "EN".');
     }
 
     // Transpose: now rows = languages, cols = variables
@@ -926,10 +977,88 @@ function txtToXlsx(data) {
     // TXT: rows = languages, cols = variables + Date column
     // XLSX: rows = variables (without Date), cols = languages
 
-    // Remove Date column (index 1) and convert language codes
     const settings = getTxtSettings();
     const hasCodeColumn = data.length > 0 && String(data[0][0] || '').trim().toLowerCase() === 'code';
-    const withoutDate = data.map((row, index) => {
+
+    // Determine language column index in original data
+    const langColIndex = hasCodeColumn ? 1 : 0;
+
+    // Check if TXT has a language key column
+    if (!hasLanguageKeyColumn(data, langColIndex)) {
+        for (let i = 0; i < data.length; i++) {
+            if (i === 0) {
+                data[i].splice(langColIndex, 0, 'Key');
+            } else {
+                data[i].splice(langColIndex, 0, 'EN');
+            }
+        }
+        addLogNotice('No language key column found in TXT. Added default language "EN".');
+    }
+
+    // Set language column header to "Key" for XLSX output (becomes cell A1)
+    if (data.length > 0 && data[0]) {
+        data[0][langColIndex] = 'Key';
+    }
+
+    // Detect Date column: check effective header at index 1
+    const effectiveHeader = hasCodeColumn ? data[0].slice(1) : [...data[0]];
+    const hasDateColumn = effectiveHeader.length > 1 &&
+        String(effectiveHeader[1] || '').trim().toLowerCase() === 'date';
+
+    // Check for duplicate language keys in data cells (when checkbox is checked)
+    let duplicateWarning = null;
+    if (ruleDuplicateCheck && ruleDuplicateCheck.checked) {
+        // Collect language codes from the language column
+        const langCodesInColumn = new Set();
+        for (let i = 1; i < data.length; i++) {
+            const code = String(data[i][langColIndex] || '').trim().toUpperCase();
+            if (code) langCodesInColumn.add(code);
+        }
+
+        // 1) Check for duplicate language rows (same code in multiple rows)
+        const langCounts = {};
+        for (let i = 1; i < data.length; i++) {
+            const code = String(data[i][langColIndex] || '').trim().toUpperCase();
+            if (!code) continue;
+            if (!langCounts[code]) langCounts[code] = [];
+            langCounts[code].push(i);
+        }
+
+        let keyOldCount = 0;
+        for (const [code, indices] of Object.entries(langCounts)) {
+            if (indices.length > 1) {
+                addLogError(`Duplicate language row "${code}" found in rows ${indices.map(i => i + 1).join(', ')}. Renaming duplicates to "key-old".`);
+                duplicateWarning = duplicateWarning || `Duplicate language key "${code}" found. Duplicates renamed to "key-old".`;
+                for (let j = 1; j < indices.length; j++) {
+                    keyOldCount++;
+                    const newName = keyOldCount === 1 ? 'key-old' : `key-old-${keyOldCount}`;
+                    data[indices[j]][langColIndex] = newName;
+                }
+            }
+        }
+
+        // 2) Check data cells for values matching a language code (e.g. "EN" or "EN ")
+        // Data columns start after language column (+ Date column if present)
+        const dataStartCol = langColIndex + (hasDateColumn ? 2 : 1);
+        const flaggedColumns = new Set();
+        for (let i = 1; i < data.length; i++) {
+            for (let j = dataStartCol; j < (data[i] || []).length; j++) {
+                const cellValue = String(data[i][j] || '').trim();
+                if (cellValue && langCodesInColumn.has(cellValue.toUpperCase()) && !flaggedColumns.has(j)) {
+                    keyOldCount++;
+                    const newName = keyOldCount === 1 ? 'key-old' : `key-old-${keyOldCount}`;
+                    const oldName = String(data[0][j] || '').trim() || `column ${j + 1}`;
+                    data[0][j] = newName;
+                    flaggedColumns.add(j);
+                    addLogError(`Data cell contains language code "${cellValue}" in column "${oldName}" (row ${i + 1}). Column header renamed to "${newName}".`);
+                    duplicateWarning = duplicateWarning || `Duplicate language key "${cellValue}" found in data column "${oldName}". Renamed to "${newName}".`;
+                }
+            }
+        }
+    }
+
+    // Process rows: remove code column, remove Date column (only if present), convert language codes
+    const processed = data.map((row, index) => {
         const effectiveRow = hasCodeColumn ? row.slice(1) : row;
         const langCode = index > 0 && effectiveRow[0] ? localeToShort(effectiveRow[0]) : null;
         const isFrench = (langCode || "").toUpperCase() === 'FR';
@@ -949,7 +1078,10 @@ function txtToXlsx(data) {
             }
             return value;
         });
-        newRow.splice(1, 1);
+        // Only remove Date column if it was detected
+        if (hasDateColumn) {
+            newRow.splice(1, 1);
+        }
         // Convert language code in first column (e.g., EN -> en_EN)
         if (index > 0 && newRow[0]) {
             newRow[0] = shortToLocale(newRow[0]);
@@ -958,7 +1090,7 @@ function txtToXlsx(data) {
     });
 
     // Transpose: now rows = variables, cols = languages
-    return transpose(withoutDate);
+    return { xlsxData: transpose(processed), duplicateWarning };
 }
 
 // Mac Roman encoding table: Unicode codepoint -> Mac Roman byte
@@ -1096,11 +1228,15 @@ async function convertTxtToXlsx() {
 
         const encoding = txtInputEncoding.value;
         const data = await parseTXT(txtFile, encoding);
-        const xlsxData = txtToXlsx(data);
+        const result = txtToXlsx(data);
         renderLog();
 
+        if (result.duplicateWarning) {
+            txtError.textContent = 'Warning: ' + result.duplicateWarning;
+        }
+
         const baseName = txtFile.name.replace(/\.txt$/i, '');
-        const link = downloadXLSX(xlsxData, `${baseName}.xlsx`);
+        const link = downloadXLSX(result.xlsxData, `${baseName}.xlsx`);
         xlsxDownload.appendChild(link);
     } catch (err) {
         txtError.textContent = 'Error: ' + err.message;
