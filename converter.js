@@ -858,9 +858,9 @@ function isLanguageCode(str) {
     const trimmed = String(str).trim();
     // Locale format: en_EN, fr_FR, etc. — very reliable
     if (/^[a-z]{2}_[A-Z]{2}$/.test(trimmed)) return true;
-    // Short format: EN, FR — validate against known codes
+    // Short format: EN, FR, en, fr — validate against known codes
     const upper = trimmed.toUpperCase();
-    if (/^[A-Z]{2}$/.test(trimmed) && KNOWN_LANG_CODES.has(upper)) return true;
+    if (/^[A-Za-z]{2}$/.test(trimmed) && KNOWN_LANG_CODES.has(upper)) return true;
     return false;
 }
 
