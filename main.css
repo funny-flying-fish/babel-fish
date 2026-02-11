@@ -59,6 +59,8 @@ body {
 }
 .log-panel {
     min-width: 0;
+    position: sticky;
+    top: 20px;
 }
 .section {
     background: #1a1a1a;
@@ -124,9 +126,15 @@ button:disabled {
 }
 .download-area {
     margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
 }
 .download-area a {
     color: #4da6ff;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 .error {
     color: #ff6b6b;
@@ -243,7 +251,7 @@ button:disabled {
 .log-list {
     margin: 0 0 0 18px;
     padding: 0;
-    max-height: 520px;
+    max-height: 70vh;
     overflow: auto;
 }
 .log-list li {
@@ -270,6 +278,10 @@ button:disabled {
 }
 .log-error {
     color: #ff6b6b;
+}
+.log-file-name {
+    color: #6ba3d6;
+    font-weight: 600;
 }
 /* Lokalise Export Styles */
 .token-input {
@@ -388,6 +400,97 @@ button:disabled {
 }
 .log-success {
     color: #6bbd6b;
+}
+
+/* Dropzone */
+.dropzone {
+    border: 2px dashed #444;
+    border-radius: 8px;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+}
+.dropzone:hover {
+    border-color: #666;
+    background: rgba(255, 255, 255, 0.03);
+}
+.dropzone.dragover {
+    border-color: #0066cc;
+    background: rgba(0, 102, 204, 0.08);
+}
+.dropzone.has-files {
+    padding-bottom: 16px;
+}
+.dropzone-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    opacity: 0.7;
+}
+.dropzone-text {
+    color: #aaa;
+    font-size: 0.95rem;
+}
+.dropzone-link {
+    color: #4da6ff;
+    text-decoration: underline;
+    cursor: pointer;
+}
+.dropzone-hint {
+    color: #555;
+    font-size: 0.8rem;
+    margin-top: 6px;
+}
+.dropzone-files {
+    list-style: none;
+    margin: 14px 0 0;
+    padding: 0;
+    text-align: left;
+}
+.dropzone-files:empty {
+    display: none;
+}
+.dropzone-file-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    background: #222;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 0.85rem;
+    color: #ccc;
+}
+.dropzone-file-item .file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dropzone-file-item .file-size {
+    color: #666;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+}
+.dropzone-file-item .file-remove {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 1rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+.dropzone-file-item .file-remove:hover {
+    color: #ff6b6b;
+}
+
+/* Find difference */
+.diff-file-label {
+    min-width: 42px;
+    font-weight: 500;
 }
 
 @media (max-width: 900px) {

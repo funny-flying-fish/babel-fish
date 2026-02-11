@@ -381,9 +381,9 @@ function getTxtSettings() {
     };
 })();
 
-// File references
-let xlsxFile = null;
-let txtFile = null;
+// File references (arrays for multi-file support)
+let xlsxFiles = [];
+let txtFiles = [];
 
 // Elements
 const xlsxInput = document.getElementById('xlsxInput');
@@ -396,6 +396,10 @@ const xlsxError = document.getElementById('xlsxError');
 const txtError = document.getElementById('txtError');
 const xlsxOutputEncoding = document.getElementById('xlsxOutputEncoding');
 const txtInputEncoding = document.getElementById('txtInputEncoding');
+const xlsxDropzone = document.getElementById('xlsxDropzone');
+const txtDropzone = document.getElementById('txtDropzone');
+const xlsxFileList = document.getElementById('xlsxFileList');
+const txtFileList = document.getElementById('txtFileList');
 const ruleNumeric = document.getElementById('ruleNumeric');
 const ruleUnitSpacing = document.getElementById('ruleUnitSpacing');
 const ruleUnitCase = document.getElementById('ruleUnitCase');
@@ -502,25 +506,20 @@ document.addEventListener('keydown', (e) => {
 });
 
 let logEntries = [];
+let currentLogFilename = '';
 
 function addLog(rule, before, after, context) {
-    logEntries.push({ rule, before, after, context });
+    logEntries.push({ rule, before, after, context, filename: currentLogFilename });
 }
 
 function addLogNotice(message) {
     if (!message) return;
-    const noticeEntry = { rule: 'Notice', before: message, after: '', context: null };
-    const firstNonErrorIndex = logEntries.findIndex((entry) => entry.rule !== 'Error');
-    if (firstNonErrorIndex === -1) {
-        logEntries.push(noticeEntry);
-    } else {
-        logEntries.splice(firstNonErrorIndex, 0, noticeEntry);
-    }
+    logEntries.push({ rule: 'Notice', before: message, after: '', context: null, filename: currentLogFilename });
 }
 
 function addLogError(message) {
     if (!message) return;
-    logEntries.unshift({ rule: 'Error', before: message, after: '', context: null });
+    logEntries.push({ rule: 'Error', before: message, after: '', context: null, filename: currentLogFilename });
 }
 
 function columnToLetters(index) {
@@ -619,28 +618,35 @@ function renderLog() {
         return;
     }
     logEmpty.style.display = 'none';
-    logCount.textContent = `${logEntries.length} changes`;
+    const changeCount = logEntries.filter(e => e.rule !== 'Notice').length;
+    logCount.textContent = `${changeCount} changes`;
     logEntries.forEach((entry) => {
         const item = document.createElement('li');
-        const contextParts = [];
-        if (entry.context && entry.context.cellRef) {
-            contextParts.push(formatCellRefHtml(entry.context.cellRef));
+
+        // Build prefix: filename + cell ref
+        const prefixParts = [];
+        if (entry.filename) {
+            prefixParts.push(`<span class="log-file-name">${escapeHtml(entry.filename)}</span>`);
         }
-        const contextHtml = contextParts.length ? `${contextParts.join(' ')} ` : '';
+        if (entry.context && entry.context.cellRef) {
+            prefixParts.push(formatCellRefHtml(entry.context.cellRef));
+        }
+        const prefixHtml = prefixParts.length ? `${prefixParts.join(' ')} ` : '';
+
         if (entry.rule === 'Notice' || entry.rule === 'Error') {
             const ruleClass = entry.rule === 'Error' ? 'log-rule log-error' : 'log-rule';
-            item.innerHTML = `${contextHtml}<span class="${ruleClass}">${escapeHtml(entry.rule)}</span>: ` +
+            item.innerHTML = `${prefixHtml}<span class="${ruleClass}">${escapeHtml(entry.rule)}</span>: ` +
                 `<span class="${entry.rule === 'Error' ? 'log-error' : ''}">${escapeHtml(entry.before)}</span>`;
         } else if (entry.rule === 'Whitespace normalization' || entry.rule === 'Line breaks removed') {
             const valueHtml = entry.rule === 'Line breaks removed'
                 ? formatLineBreakValue(entry.before)
                 : formatWhitespaceValue(entry.before);
-            item.innerHTML = `${contextHtml}<span class="log-rule">${escapeHtml(entry.rule)}</span>: ` +
+            item.innerHTML = `${prefixHtml}<span class="log-rule">${escapeHtml(entry.rule)}</span>: ` +
                 `<span class="log-line">"${valueHtml}"</span>`;
         } else {
             const beforeHtml = escapeHtml(entry.before);
             const afterHtml = escapeHtml(entry.after);
-            item.innerHTML = `${contextHtml}<span class="log-rule">${escapeHtml(entry.rule)}</span>: ` +
+            item.innerHTML = `${prefixHtml}<span class="log-rule">${escapeHtml(entry.rule)}</span>: ` +
                 `<span class="log-before">"${beforeHtml}"</span> → ` +
                 `<span class="log-after">"${afterHtml}"</span>`;
         }
@@ -650,24 +656,110 @@ function renderLog() {
 
 function resetLog(title) {
     logEntries = [];
+    currentLogFilename = '';
     logTitle.textContent = title;
     renderLog();
 }
 
-// Event listeners
-xlsxInput.addEventListener('change', (e) => {
-    xlsxFile = e.target.files[0];
-    xlsxToTxtBtn.disabled = !xlsxFile;
-    txtDownload.innerHTML = '';
-    xlsxError.textContent = '';
-});
+// ── Dropzone helpers ─────────────────────────────────────────────
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
 
-txtInput.addEventListener('change', (e) => {
-    txtFile = e.target.files[0];
-    txtToXlsxBtn.disabled = !txtFile;
-    xlsxDownload.innerHTML = '';
-    txtError.textContent = '';
-});
+function renderFileList(files, listEl, dropzone) {
+    listEl.innerHTML = '';
+    if (files.length === 0) {
+        dropzone.classList.remove('has-files');
+        return;
+    }
+    dropzone.classList.add('has-files');
+    files.forEach((file, index) => {
+        const li = document.createElement('li');
+        li.className = 'dropzone-file-item';
+        li.innerHTML = `
+            <span class="file-name">${escapeHtml(file.name)}</span>
+            <span class="file-size">${formatFileSize(file.size)}</span>
+            <button type="button" class="file-remove" data-index="${index}" title="Remove">✕</button>
+        `;
+        listEl.appendChild(li);
+    });
+}
+
+function addFilesToList(newFiles, currentFiles, accept) {
+    const ext = accept.replace('.', '').toLowerCase();
+    const filtered = Array.from(newFiles).filter(f => f.name.toLowerCase().endsWith('.' + ext));
+    // Avoid duplicates by name+size
+    const existing = new Set(currentFiles.map(f => f.name + '|' + f.size));
+    for (const f of filtered) {
+        if (!existing.has(f.name + '|' + f.size)) {
+            currentFiles.push(f);
+        }
+    }
+    return currentFiles;
+}
+
+function setupDropzone(dropzone, input, getFiles, setFiles, listEl, btn, downloadArea, errorEl, accept) {
+    // Click to browse
+    dropzone.addEventListener('click', (e) => {
+        if (e.target.closest('.file-remove')) return;
+        input.click();
+    });
+
+    // Drag events
+    dropzone.addEventListener('dragenter', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', (e) => {
+        if (!dropzone.contains(e.relatedTarget)) dropzone.classList.remove('dragover');
+    });
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        const files = addFilesToList(e.dataTransfer.files, getFiles(), accept);
+        setFiles(files);
+        renderFileList(files, listEl, dropzone);
+        btn.disabled = files.length === 0;
+        downloadArea.innerHTML = '';
+        errorEl.textContent = '';
+    });
+
+    // File input change
+    input.addEventListener('change', () => {
+        const files = addFilesToList(input.files, getFiles(), accept);
+        setFiles(files);
+        renderFileList(files, listEl, dropzone);
+        btn.disabled = files.length === 0;
+        downloadArea.innerHTML = '';
+        errorEl.textContent = '';
+        input.value = '';
+    });
+
+    // Remove file button (delegated)
+    listEl.addEventListener('click', (e) => {
+        const removeBtn = e.target.closest('.file-remove');
+        if (!removeBtn) return;
+        e.stopPropagation();
+        const idx = parseInt(removeBtn.dataset.index, 10);
+        const files = getFiles();
+        files.splice(idx, 1);
+        setFiles(files);
+        renderFileList(files, listEl, dropzone);
+        btn.disabled = files.length === 0;
+    });
+}
+
+setupDropzone(
+    xlsxDropzone, xlsxInput,
+    () => xlsxFiles, (f) => { xlsxFiles = f; },
+    xlsxFileList, xlsxToTxtBtn, txtDownload, xlsxError, '.xlsx'
+);
+
+setupDropzone(
+    txtDropzone, txtInput,
+    () => txtFiles, (f) => { txtFiles = f; },
+    txtFileList, txtToXlsxBtn, xlsxDownload, txtError, '.txt'
+);
 
 xlsxToTxtBtn.addEventListener('click', convertXlsxToTxt);
 txtToXlsxBtn.addEventListener('click', convertTxtToXlsx);
@@ -887,8 +979,6 @@ function hasLanguageKeyColumn(data, colIndex) {
 function xlsxToTxt(data, options = {}) {
     // XLSX: rows = variables (Label1, Label2...), cols = languages
     // TXT: rows = languages, cols = variables + Date column
-
-    resetLog('XLSX → TXT');
     const replaceNonBreakingHyphen = Boolean(options.replaceNonBreakingHyphen);
     let foundNonBreakingHyphen = false;
     if (options.codeHasValue === false) {
@@ -968,7 +1058,6 @@ function xlsxToTxt(data, options = {}) {
 
     // Convert to tab-separated string
     const txt = result.map(row => row.join('\t')).join('\n');
-    renderLog();
     return { txt, foundNonBreakingHyphen };
 }
 
@@ -1191,55 +1280,220 @@ function downloadXLSX(data, filename) {
     return link;
 }
 
-// Convert XLSX to TXT
+// Convert XLSX to TXT (multi-file)
 async function convertXlsxToTxt() {
-    try {
-        xlsxError.textContent = '';
-        txtDownload.innerHTML = '';
+    xlsxError.textContent = '';
+    txtDownload.innerHTML = '';
+    resetLog('XLSX → TXT log');
 
-        const encoding = xlsxOutputEncoding.value;
-        const data = await parseXLSX(xlsxFile);
-        const { value: codeValue, hasCode } = extractCodeFromFilename(xlsxFile.name);
-        const { txt, foundNonBreakingHyphen } = xlsxToTxt(data, {
-            replaceNonBreakingHyphen: encoding !== 'utf-8',
-            codeValue,
-            codeHasValue: hasCode
-        });
-        const txtContent = txt;
-        if (foundNonBreakingHyphen && encoding !== 'utf-8') {
-            addLogNotice('Non-breaking hyphen found. Use UTF-8 output to preserve it. If UTF-8 is not selected, the character will be replaced with a regular hyphen, which is safe.');
-            renderLog();
+    if (xlsxFiles.length === 0) return;
+
+    const encoding = xlsxOutputEncoding.value;
+    let errorMessages = [];
+
+    for (let fi = 0; fi < xlsxFiles.length; fi++) {
+        const file = xlsxFiles[fi];
+        currentLogFilename = file.name;
+        try {
+            const data = await parseXLSX(file);
+            const { value: codeValue, hasCode } = extractCodeFromFilename(file.name);
+            const { txt, foundNonBreakingHyphen } = xlsxToTxt(data, {
+                replaceNonBreakingHyphen: encoding !== 'utf-8',
+                codeValue,
+                codeHasValue: hasCode
+            });
+
+            if (foundNonBreakingHyphen && encoding !== 'utf-8') {
+                addLogNotice('Non-breaking hyphen found. Use UTF-8 output to preserve it. If UTF-8 is not selected, the character will be replaced with a regular hyphen, which is safe.');
+            }
+
+            const baseName = file.name.replace(/\.xlsx$/i, '');
+            const link = downloadTXT(txt, `${baseName}.txt`, encoding);
+            txtDownload.appendChild(link);
+        } catch (err) {
+            errorMessages.push(`${file.name}: ${err.message}`);
+            addLogError(`${file.name}: ${err.message}`);
         }
+    }
 
-        const baseName = xlsxFile.name.replace(/\.xlsx$/i, '');
-        const link = downloadTXT(txtContent, `${baseName}.txt`, encoding);
-        txtDownload.appendChild(link);
-    } catch (err) {
-        xlsxError.textContent = 'Error: ' + err.message;
+    renderLog();
+    if (errorMessages.length > 0) {
+        xlsxError.textContent = 'Errors: ' + errorMessages.join('; ');
     }
 }
 
-// Convert TXT to XLSX
+// Convert TXT to XLSX (multi-file)
 async function convertTxtToXlsx() {
+    txtError.textContent = '';
+    xlsxDownload.innerHTML = '';
+    resetLog('TXT → XLSX log');
+
+    if (txtFiles.length === 0) return;
+
+    const encoding = txtInputEncoding.value;
+    let errorMessages = [];
+    let warnings = [];
+
+    for (let fi = 0; fi < txtFiles.length; fi++) {
+        const file = txtFiles[fi];
+        currentLogFilename = file.name;
+        try {
+            const data = await parseTXT(file, encoding);
+            const result = txtToXlsx(data);
+
+            if (result.duplicateWarning) {
+                warnings.push(`${file.name}: ${result.duplicateWarning}`);
+            }
+
+            const baseName = file.name.replace(/\.txt$/i, '');
+            const link = downloadXLSX(result.xlsxData, `${baseName}.xlsx`);
+            xlsxDownload.appendChild(link);
+        } catch (err) {
+            errorMessages.push(`${file.name}: ${err.message}`);
+            addLogError(`${file.name}: ${err.message}`);
+        }
+    }
+
+    renderLog();
+    const allMessages = [...warnings.map(w => 'Warning: ' + w), ...errorMessages.map(e => 'Error: ' + e)];
+    if (allMessages.length > 0) {
+        txtError.innerHTML = allMessages.map(m => escapeHtml(m)).join('<br>');
+    }
+}
+
+// ── Find difference ──────────────────────────────────────────────
+let diffFileA = null;
+let diffFileB = null;
+
+const diffFileAInput = document.getElementById('diffFileA');
+const diffFileBInput = document.getElementById('diffFileB');
+const diffCompareBtn = document.getElementById('diffCompareBtn');
+const diffError = document.getElementById('diffError');
+
+function updateDiffButton() {
+    diffCompareBtn.disabled = !(diffFileA && diffFileB);
+}
+
+diffFileAInput.addEventListener('change', (e) => {
+    diffFileA = e.target.files[0] || null;
+    updateDiffButton();
+    diffError.textContent = '';
+});
+
+diffFileBInput.addEventListener('change', (e) => {
+    diffFileB = e.target.files[0] || null;
+    updateDiffButton();
+    diffError.textContent = '';
+});
+
+diffCompareBtn.addEventListener('click', compareDiffFiles);
+
+async function compareDiffFiles() {
     try {
-        txtError.textContent = '';
-        xlsxDownload.innerHTML = '';
-        resetLog('TXT → XLSX');
+        diffError.textContent = '';
+        resetLog('Difference log');
 
-        const encoding = txtInputEncoding.value;
-        const data = await parseTXT(txtFile, encoding);
-        const result = txtToXlsx(data);
-        renderLog();
+        const dataA = await parseXLSX(diffFileA);
+        const dataB = await parseXLSX(diffFileB);
 
-        if (result.duplicateWarning) {
-            txtError.textContent = 'Warning: ' + result.duplicateWarning;
+        // Build maps: key (col A) -> english text (col B), skip header row
+        const mapA = new Map();
+        const mapB = new Map();
+        const duplicateKeysA = [];
+        const duplicateKeysB = [];
+
+        for (let i = 1; i < dataA.length; i++) {
+            const row = dataA[i];
+            const key = String(row[0] || '').trim();
+            if (!key) continue;
+            if (mapA.has(key)) {
+                duplicateKeysA.push({ key, row: i + 1 });
+            }
+            mapA.set(key, String(row[1] || '').trim());
         }
 
-        const baseName = txtFile.name.replace(/\.txt$/i, '');
-        const link = downloadXLSX(result.xlsxData, `${baseName}.xlsx`);
-        xlsxDownload.appendChild(link);
+        for (let i = 1; i < dataB.length; i++) {
+            const row = dataB[i];
+            const key = String(row[0] || '').trim();
+            if (!key) continue;
+            if (mapB.has(key)) {
+                duplicateKeysB.push({ key, row: i + 1 });
+            }
+            mapB.set(key, String(row[1] || '').trim());
+        }
+
+        const nameA = diffFileA.name;
+        const nameB = diffFileB.name;
+
+        // Report duplicate keys
+        for (const dup of duplicateKeysA) {
+            addLogError(`Duplicate key "${dup.key}" in ${nameA} (row ${dup.row})`);
+        }
+        for (const dup of duplicateKeysB) {
+            addLogError(`Duplicate key "${dup.key}" in ${nameB} (row ${dup.row})`);
+        }
+
+        // 1) Key count difference
+        if (mapA.size !== mapB.size) {
+            addLog(
+                'Key count mismatch',
+                `${nameA}: ${mapA.size} keys`,
+                `${nameB}: ${mapB.size} keys`
+            );
+        } else {
+            addLogNotice(`Both files have ${mapA.size} keys.`);
+        }
+
+        // 2) Keys only in A
+        const onlyInA = [];
+        for (const key of mapA.keys()) {
+            if (!mapB.has(key)) onlyInA.push(key);
+        }
+        if (onlyInA.length > 0) {
+            addLogNotice(`${onlyInA.length} key(s) only in ${nameA}:`);
+            for (const key of onlyInA) {
+                addLog('Only in ' + nameA, key, '—');
+            }
+        }
+
+        // 3) Keys only in B
+        const onlyInB = [];
+        for (const key of mapB.keys()) {
+            if (!mapA.has(key)) onlyInB.push(key);
+        }
+        if (onlyInB.length > 0) {
+            addLogNotice(`${onlyInB.length} key(s) only in ${nameB}:`);
+            for (const key of onlyInB) {
+                addLog('Only in ' + nameB, key, '—');
+            }
+        }
+
+        // 4) Keys present in both but with different English text
+        const textDiffs = [];
+        for (const [key, textA] of mapA) {
+            if (!mapB.has(key)) continue;
+            const textB = mapB.get(key);
+            if (textA !== textB) {
+                textDiffs.push({ key, textA, textB });
+            }
+        }
+        if (textDiffs.length > 0) {
+            addLogNotice(`${textDiffs.length} key(s) with different English text:`);
+            for (const diff of textDiffs) {
+                addLog(diff.key, diff.textA, diff.textB);
+            }
+        }
+
+        // Summary if no differences
+        if (onlyInA.length === 0 && onlyInB.length === 0 && textDiffs.length === 0 &&
+            duplicateKeysA.length === 0 && duplicateKeysB.length === 0 &&
+            mapA.size === mapB.size) {
+            addLogNotice('Files are identical — no differences found.');
+        }
+
+        renderLog();
     } catch (err) {
-        txtError.textContent = 'Error: ' + err.message;
+        diffError.textContent = 'Error: ' + err.message;
     }
 }
 
