@@ -63,6 +63,9 @@
             <ul>
                 <li>XLSX → TXT conversion for InDesign import</li>
                 <li>TXT → XLSX conversion for returning edited translations</li>
+                <li>Large drag-and-drop upload zones with multi-file support</li>
+                <li>Batch conversion: convert several files in one run</li>
+                <li>Per-file log lines prefixed with the filename</li>
                 <li>Automatic non-breaking spaces (NBSP) insertion</li>
                 <li>Number and unit formatting by language</li>
                 <li>Multiple encoding support (Mac Roman, UTF-8, Windows-1252)</li>
@@ -125,7 +128,9 @@
         <div class="step-box">
             <span class="step-number">1</span>
             <span class="step-title">Select your XLSX file</span>
-            <div class="step-content"><p>Click the file input field and choose your XLSX file with translations.</p></div>
+            <div class="step-content">
+                <p>Drop one or multiple <code>.xlsx</code> files into the large upload area, or click it to browse.</p>
+            </div>
         </div>
         
         <div class="step-box">
@@ -155,14 +160,26 @@
         <div class="step-box">
             <span class="step-number">4</span>
             <span class="step-title">Click "Convert"</span>
-            <div class="step-content"><p>The conversion will run and display all changes in the log panel on the right.</p></div>
+            <div class="step-content">
+                <p>The conversion will process all selected files in a batch and display changes in the log panel on the right.</p>
+            </div>
         </div>
         
         <div class="step-box">
             <span class="step-number">5</span>
             <span class="step-title">Download the result</span>
-            <div class="step-content"><p>Click the download link to save your TXT file. The file is ready for InDesign import.</p></div>
+            <div class="step-content">
+                <p>Download links are generated for each converted file. Each TXT file is ready for InDesign import.</p>
+            </div>
         </div>
+
+        <h3>Conversion log format</h3>
+        <p>Each log line starts with the source filename, so batch runs are easy to review:</p>
+        <ul>
+            <li><code>Filename Notice: ...</code></li>
+            <li><code>Filename B5 Outer quotes removed: "..." → "..."</code></li>
+            <li><code>Filename C12 NBSP before units: "..." → "..."</code></li>
+        </ul>
         
         <h3>Output file format</h3>
         <p>The TXT file will have:</p>
@@ -176,7 +193,7 @@
         
         <h2>TXT → XLSX Conversion</h2>
         
-        <p>This is a secondary feature for rare cases when you need to convert TXT files back to XLSX format (e.g., returning edited translations to translators). The workflow is similar to XLSX → TXT but in reverse.</p>
+        <p>This is a secondary feature for rare cases when you need to convert TXT files back to XLSX format (e.g., returning edited translations to translators). You can also drop and convert multiple TXT files in one run.</p>
         
         <h2>Supported Languages</h2>
         
@@ -235,6 +252,9 @@
             <ul>
                 <li>Конвертация XLSX → TXT для импорта в InDesign</li>
                 <li>Конвертация TXT → XLSX для возврата отредактированных переводов</li>
+                <li>Крупные drag-and-drop зоны загрузки с мультивыбором файлов</li>
+                <li>Пакетная обработка: конвертация нескольких файлов за один запуск</li>
+                <li>Лог по строкам с префиксом имени файла</li>
                 <li>Автоматическая расстановка неразрывных пробелов (NBSP)</li>
                 <li>Форматирование чисел и единиц измерения по языкам</li>
                 <li>Поддержка разных кодировок (Mac Roman, UTF-8, Windows-1252)</li>
@@ -295,7 +315,9 @@
         <div class="step-box">
             <span class="step-number">1</span>
             <span class="step-title">Выберите XLSX файл</span>
-            <div class="step-content"><p>Нажмите на поле выбора файла и выберите XLSX файл с переводами.</p></div>
+            <div class="step-content">
+                <p>Перетащите один или несколько файлов <code>.xlsx</code> в большую зону загрузки или нажмите на нее для выбора файлов.</p>
+            </div>
         </div>
         
         <div class="step-box">
@@ -325,14 +347,26 @@
         <div class="step-box">
             <span class="step-number">4</span>
             <span class="step-title">Нажмите «Convert»</span>
-            <div class="step-content"><p>Конвертация запустится и отобразит все изменения в панели логов справа.</p></div>
+            <div class="step-content">
+                <p>Конвертация обработает все выбранные файлы пакетно и отобразит изменения в панели логов справа.</p>
+            </div>
         </div>
         
         <div class="step-box">
             <span class="step-number">5</span>
             <span class="step-title">Скачайте результат</span>
-            <div class="step-content"><p>Нажмите на ссылку скачивания, чтобы сохранить TXT файл. Файл готов для импорта в InDesign.</p></div>
+            <div class="step-content">
+                <p>Для каждого обработанного файла появится отдельная ссылка скачивания. TXT файлы готовы для импорта в InDesign.</p>
+            </div>
         </div>
+
+        <h3>Формат лога конвертации</h3>
+        <p>Каждая строка лога начинается с имени исходного файла, что удобно при пакетной обработке:</p>
+        <ul>
+            <li><code>Filename Notice: ...</code></li>
+            <li><code>Filename B5 Outer quotes removed: "..." → "..."</code></li>
+            <li><code>Filename C12 NBSP before units: "..." → "..."</code></li>
+        </ul>
         
         <h3>Формат выходного файла</h3>
         <p>TXT файл будет содержать:</p>
@@ -346,7 +380,7 @@
         
         <h2>Конвертация TXT → XLSX</h2>
         
-        <p>Второстепенная функция для редких случаев, когда нужна обратная конвертация из TXT в XLSX (например, для возврата отредактированных переводов переводчикам). Процесс аналогичен XLSX → TXT, но в обратном направлении.</p>
+        <p>Второстепенная функция для редких случаев, когда нужна обратная конвертация из TXT в XLSX (например, для возврата отредактированных переводов переводчикам). Процесс аналогичен XLSX → TXT, но в обратном направлении. Также поддерживается пакетная конвертация нескольких TXT файлов.</p>
         
         <h2>Поддерживаемые языки</h2>
         

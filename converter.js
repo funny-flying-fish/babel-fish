@@ -41,7 +41,7 @@ function getTxtSettings() {
         let result = text;
 
         // Initials and surname
-        result = result.replace(/\b([A-ZÀ-ÖØ-Þ])\.\s+([A-ZÀ-ÖØ-Þ][A-Za-zÀ-ÖØ-öø-ÿ'-]*)/g, (match, initial, surname) => {
+        result = result.replace(/\b([A-ZÀ-ÖØ-ÞĄĆĘŁŃŚŹŻ])\.\s+([A-ZÀ-ÖØ-ÞĄĆĘŁŃŚŹŻ][A-Za-zÀ-ÖØ-öø-ÿĄĆĘŁŃŚŹŻąćęłńśźż'-]*)/g, (match, initial, surname) => {
             const updated = `${initial}.${NBSP}${surname}`;
             logChange(logger, 'NBSP after initials', match, updated);
             return updated;
@@ -177,14 +177,19 @@ function getTxtSettings() {
         const lang = (langCode || "").toUpperCase();
         let result = text;
 
+        // \b is broken for Unicode: JS treats only [A-Za-z0-9_] as word chars,
+        // so \b fires inside words like "Contrôle", "systemów", "autonomía".
+        // Use negative lookbehind for any Latin letter (including diacritics) instead.
+        const LB = '(?<![A-Za-z\\xC0-\\xD6\\xD8-\\xF6\\xF8-\\xFF\\u0100-\\u024F])';
+
         if (lang === "EN") {
-            result = result.replace(/\b(a|an|the|I)\s+/gi, (match, word) => {
+            result = result.replace(new RegExp(LB + '(a|an|the|I)\\s+', 'gi'), (match, word) => {
                 const updated = `${word}${NBSP}`;
                 logChange(logger, 'EN NBSP after short words', match, updated);
                 return updated;
             });
         } else if (lang === "FR") {
-            result = result.replace(/\b(à|y|en|le|la|les|un|une|de|du)\s+/gi, (match, word) => {
+            result = result.replace(new RegExp(LB + '(à|y|en|le|la|les|un|une|de|du)\\s+', 'gi'), (match, word) => {
                 const updated = `${word}${NBSP}`;
                 logChange(logger, 'FR NBSP after short words', match, updated);
                 return updated;
@@ -205,21 +210,27 @@ function getTxtSettings() {
                 return updated;
             });
         } else if (lang === "ES") {
-            result = result.replace(/\b(a|e|i|o|u|y|la|el|un)\s+/gi, (match, word) => {
+            result = result.replace(new RegExp(LB + '(a|e|i|o|u|y|la|el|un)\\s+', 'gi'), (match, word) => {
                 const updated = `${word}${NBSP}`;
                 logChange(logger, 'ES NBSP after short words', match, updated);
                 return updated;
             });
         } else if (lang === "DE") {
-            result = result.replace(/\b(der|die|das|ein|eine|Dr\.|Prof\.|Hr\.|Fr\.)\s+/gi, (match, word) => {
+            result = result.replace(new RegExp(LB + '(der|die|das|ein|eine|Dr\\.|Prof\\.|Hr\\.|Fr\\.)\\s+', 'gi'), (match, word) => {
                 const updated = `${word}${NBSP}`;
                 logChange(logger, 'DE NBSP after short words', match, updated);
                 return updated;
             });
         } else if (lang === "NL") {
-            result = result.replace(/\b(de|het|een|in|op|te|ten|ter)\s+/gi, (match, word) => {
+            result = result.replace(new RegExp(LB + '(de|het|een|in|op|te|ten|ter)\\s+', 'gi'), (match, word) => {
                 const updated = `${word}${NBSP}`;
                 logChange(logger, 'NL NBSP after short words', match, updated);
+                return updated;
+            });
+        } else if (lang === "PL") {
+            result = result.replace(new RegExp(LB + '(a|e|i|o|u|w|z)\\s+', 'gi'), (match, word) => {
+                const updated = `${word}${NBSP}`;
+                logChange(logger, 'PL NBSP after short words', match, updated);
                 return updated;
             });
         }
@@ -231,7 +242,7 @@ function getTxtSettings() {
         if (!enabled) return text;
 
         const lang = (langCode || "").toUpperCase();
-        const thousandsSep = lang === "FR" ? NBSP : (lang === "EN" ? "," : ".");
+        const thousandsSep = (lang === "FR" || lang === "PL") ? NBSP : (lang === "EN" ? "," : ".");
         const decimalSep = lang === "EN" ? "." : ",";
 
         function parseNumberString(numStr) {
@@ -338,7 +349,7 @@ function getTxtSettings() {
             return result;
         }
 
-        if (lang === "FR" || lang === "DE" || lang === "ES") {
+        if (lang === "FR" || lang === "DE" || lang === "ES" || lang === "PL") {
             let result = text.replace(prefixRegex, (match, symbol, number) => {
                 const updated = `${number}${NBSP}${symbol}`;
                 logChange(logger, 'Currency formatting', match, updated);
@@ -395,7 +406,6 @@ const xlsxDownload = document.getElementById('xlsxDownload');
 const xlsxError = document.getElementById('xlsxError');
 const txtError = document.getElementById('txtError');
 const xlsxOutputEncoding = document.getElementById('xlsxOutputEncoding');
-const txtInputEncoding = document.getElementById('txtInputEncoding');
 const xlsxDropzone = document.getElementById('xlsxDropzone');
 const txtDropzone = document.getElementById('txtDropzone');
 const xlsxFileList = document.getElementById('xlsxFileList');
@@ -775,11 +785,17 @@ function getCurrentDate() {
 
 function extractCodeFromFilename(filename) {
     if (!filename) return { value: 'not-set', hasCode: false };
-    const match = filename.match(/\[(.*?)\]/);
-    if (!match) return { value: 'not-set', hasCode: false };
-    const trimmed = match[1].trim();
-    if (!trimmed) return { value: 'not-set', hasCode: false };
-    return { value: trimmed, hasCode: true };
+    const squareMatch = filename.match(/\[(.*?)\]/);
+    if (squareMatch) {
+        const trimmed = squareMatch[1].trim();
+        if (trimmed) return { value: trimmed, hasCode: true };
+    }
+    const roundMatch = filename.match(/\((.*?)\)/);
+    if (roundMatch) {
+        const trimmed = roundMatch[1].trim();
+        if (trimmed) return { value: trimmed, hasCode: true };
+    }
+    return { value: 'not-set', hasCode: false };
 }
 
 // Convert locale code (en_EN) to 2-letter uppercase (EN) for TXT
@@ -826,13 +842,21 @@ function parseXLSX(file) {
     });
 }
 
-// Parse TXT file with specified encoding and return 2D array
-function parseTXT(file, encoding) {
+function detectEncoding(buffer) {
+    const bytes = new Uint8Array(buffer);
+    if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) return 'utf-16le';
+    if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) return 'utf-8';
+    return 'macintosh';
+}
+
+// Parse TXT file with auto-detected encoding and return 2D array
+function parseTXT(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const buffer = e.target.result;
+                const encoding = detectEncoding(buffer);
                 const decoder = new TextDecoder(encoding);
                 const text = decoder.decode(buffer);
                 // Handle both \r\n (Windows) and \n (Unix) line endings
@@ -1222,11 +1246,25 @@ const win1252FromUnicode = {
     0x017E: 0x9E, 0x0178: 0x9F
 };
 
+// Encode string to UTF-16 LE (each JS char → 2 bytes, little-endian)
+function encodeUTF16LE(str) {
+    const bytes = new Uint8Array(str.length * 2);
+    for (let i = 0; i < str.length; i++) {
+        const code = str.charCodeAt(i);
+        bytes[i * 2] = code & 0xFF;
+        bytes[i * 2 + 1] = (code >> 8) & 0xFF;
+    }
+    return bytes;
+}
+
 // Encode string to specific encoding
 function encodeString(str, encoding) {
-    // For UTF-8, use native TextEncoder
     if (encoding === 'utf-8') {
         return new TextEncoder().encode(str);
+    }
+
+    if (encoding === 'utf-16le') {
+        return encodeUTF16LE(str);
     }
 
     const bytes = [];
@@ -1236,16 +1274,12 @@ function encodeString(str, encoding) {
         const code = str.charCodeAt(i);
 
         if (code < 0x80) {
-            // ASCII - same in all encodings
             bytes.push(code);
         } else if (encTable[code] !== undefined) {
-            // Use encoding table
             bytes.push(encTable[code]);
         } else if (code >= 0x00A0 && code <= 0x00FF) {
-            // Latin-1 Supplement (mostly same in Windows-1252)
             bytes.push(code);
         } else {
-            // Character not in encoding - use '?'
             bytes.push(0x3F);
         }
     }
@@ -1256,7 +1290,10 @@ function encodeString(str, encoding) {
 // Trigger TXT download with specified encoding
 function downloadTXT(content, filename, encoding) {
     const bytes = encodeString(content, encoding);
-    const blob = new Blob([bytes], { type: 'text/plain' });
+    const parts = encoding === 'utf-16le'
+        ? [new Uint8Array([0xFF, 0xFE]), bytes]
+        : [bytes];
+    const blob = new Blob(parts, { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -1298,17 +1335,19 @@ async function convertXlsxToTxt() {
             const data = await parseXLSX(file);
             const { value: codeValue, hasCode } = extractCodeFromFilename(file.name);
             const { txt, foundNonBreakingHyphen } = xlsxToTxt(data, {
-                replaceNonBreakingHyphen: encoding !== 'utf-8',
+                replaceNonBreakingHyphen: encoding !== 'utf-16le',
                 codeValue,
                 codeHasValue: hasCode
             });
 
-            if (foundNonBreakingHyphen && encoding !== 'utf-8') {
-                addLogNotice('Non-breaking hyphen found. Use UTF-8 output to preserve it. If UTF-8 is not selected, the character will be replaced with a regular hyphen, which is safe.');
+            if (foundNonBreakingHyphen && encoding !== 'utf-16le') {
+                addLogNotice('Non-breaking hyphen found. Use Unicode output to preserve it. Otherwise the character will be replaced with a regular hyphen, which is safe.');
             }
 
+            const encodingLabels = { 'utf-16le': 'Unicode', 'macintosh': 'MacRoman', 'windows-1252': 'Win1252' };
+            const encodingLabel = encodingLabels[encoding] || encoding;
             const baseName = file.name.replace(/\.xlsx$/i, '');
-            const link = downloadTXT(txt, `${baseName}.txt`, encoding);
+            const link = downloadTXT(txt, `${baseName}-${encodingLabel}.txt`, encoding);
             txtDownload.appendChild(link);
         } catch (err) {
             errorMessages.push(`${file.name}: ${err.message}`);
@@ -1330,7 +1369,6 @@ async function convertTxtToXlsx() {
 
     if (txtFiles.length === 0) return;
 
-    const encoding = txtInputEncoding.value;
     let errorMessages = [];
     let warnings = [];
 
@@ -1338,7 +1376,7 @@ async function convertTxtToXlsx() {
         const file = txtFiles[fi];
         currentLogFilename = file.name;
         try {
-            const data = await parseTXT(file, encoding);
+            const data = await parseTXT(file);
             const result = txtToXlsx(data);
 
             if (result.duplicateWarning) {

@@ -35,8 +35,8 @@
                     <div class="form-row" style="margin-top: 12px;">
                         <label for="xlsxOutputEncoding">Encoding:</label>
                         <select id="xlsxOutputEncoding">
-                            <option value="macintosh" selected>Mac Roman</option>
-                            <option value="utf-8">UTF-8</option>
+                            <option value="utf-16le" selected>Unicode</option>
+                            <option value="macintosh">Mac Roman</option>
                             <option value="windows-1252">Windows-1252</option>
                         </select>
                         <button id="xlsxToTxtBtn" disabled>Convert</button>
@@ -59,8 +59,8 @@
                     <li><button type="button" class="link-button" id="openRules">More information</button></li>
                 </ul>
 
-                <p class="note">Default encoding is Mac Roman. If you notice character issues in the output, please try
-                    a different encoding option.</p>
+                <p class="note">Default encoding is Unicode (UTF-16). Supports all languages including Polish.
+                    Use Mac Roman for legacy files that don't contain Polish or other Central European languages.</p>
             </div>
 
             <!-- Tab 2: TXT → XLSX -->
@@ -75,12 +75,6 @@
                         <ul class="dropzone-files" id="txtFileList"></ul>
                     </div>
                     <div class="form-row" style="margin-top: 12px;">
-                        <label for="txtInputEncoding">Encoding:</label>
-                        <select id="txtInputEncoding">
-                            <option value="macintosh" selected>Mac Roman</option>
-                            <option value="utf-8">UTF-8</option>
-                            <option value="windows-1252">Windows-1252</option>
-                        </select>
                         <button id="txtToXlsxBtn" disabled>Convert</button>
                     </div>
                     <div class="download-area" id="xlsxDownload"></div>
@@ -98,8 +92,7 @@
                     <li><label><input type="checkbox" id="ruleDuplicateCheck"> Check for duplicated language keys if this is first conversion from TXT to XLSX</label></li>
                 </ul>
 
-                <p class="note">Default encoding is Mac Roman. If you notice character issues in the output, please try
-                    a different encoding option.</p>
+                <p class="note">Encoding is auto-detected: Unicode (UTF-16), UTF-8, or Mac Roman.</p>
             </div>
 
             <!-- Tab 3: XLSX → Lokalise -->
