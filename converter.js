@@ -846,6 +846,16 @@ function detectEncoding(buffer) {
     const bytes = new Uint8Array(buffer);
     if (bytes.length >= 2 && bytes[0] === 0xFF && bytes[1] === 0xFE) return 'utf-16le';
     if (bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) return 'utf-8';
+    // Detect BOM-less UTF-16LE: check if odd-position bytes are mostly 0x00
+    // (typical for ASCII/Latin text encoded as UTF-16LE without a BOM)
+    if (bytes.length >= 20) {
+        let nullCount = 0;
+        const checkLen = Math.min(bytes.length, 100);
+        for (let i = 1; i < checkLen; i += 2) {
+            if (bytes[i] === 0x00) nullCount++;
+        }
+        if (nullCount > (checkLen / 2) * 0.8) return 'utf-16le';
+    }
     return 'macintosh';
 }
 
