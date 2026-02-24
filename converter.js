@@ -410,6 +410,7 @@ const xlsxDropzone = document.getElementById('xlsxDropzone');
 const txtDropzone = document.getElementById('txtDropzone');
 const xlsxFileList = document.getElementById('xlsxFileList');
 const txtFileList = document.getElementById('txtFileList');
+const ruleEncodingSuffix = document.getElementById('ruleEncodingSuffix');
 const ruleNumeric = document.getElementById('ruleNumeric');
 const ruleUnitSpacing = document.getElementById('ruleUnitSpacing');
 const ruleUnitCase = document.getElementById('ruleUnitCase');
@@ -976,7 +977,7 @@ const KNOWN_LANG_CODES = new Set([
     'SK', 'HU', 'RO', 'BG', 'HR', 'SL', 'SR', 'BS', 'MK', 'SQ',
     'EL', 'TR', 'DA', 'NO', 'SV', 'FI', 'ET', 'LV', 'LT', 'GA',
     'CY', 'MT', 'EU', 'CA', 'GL', 'JA', 'ZH', 'KO', 'AR', 'HE',
-    'HI', 'TH', 'VI', 'ID', 'MS', 'TL', 'SW', 'UK', 'BE'
+    'HI', 'TH', 'VI', 'ID', 'MS', 'TL', 'SW', 'UK', 'BE', 'US'
 ]);
 
 function isLanguageCode(str) {
@@ -1354,10 +1355,13 @@ async function convertXlsxToTxt() {
                 addLogNotice('Non-breaking hyphen found. Use Unicode output to preserve it. Otherwise the character will be replaced with a regular hyphen, which is safe.');
             }
 
-            const encodingLabels = { 'utf-16le': 'Unicode', 'macintosh': 'MacRoman', 'windows-1252': 'Win1252' };
-            const encodingLabel = encodingLabels[encoding] || encoding;
             const baseName = file.name.replace(/\.xlsx$/i, '');
-            const link = downloadTXT(txt, `${baseName}-${encodingLabel}.txt`, encoding);
+            let outputName = baseName;
+            if (ruleEncodingSuffix.checked) {
+                const encodingLabels = { 'utf-16le': 'Unicode', 'macintosh': 'MacRoman', 'windows-1252': 'Win1252' };
+                outputName += '-' + (encodingLabels[encoding] || encoding);
+            }
+            const link = downloadTXT(txt, `${outputName}.txt`, encoding);
             txtDownload.appendChild(link);
         } catch (err) {
             errorMessages.push(`${file.name}: ${err.message}`);
