@@ -909,6 +909,7 @@ function stripOuterQuotes(value, enabled, logger, context) {
         '“': '”',
         '„': '“'
     };
+    const closingChars = new Set(Object.values(pairs));
     const first = text[0];
     const last = text[text.length - 1];
     if (pairs[first] && pairs[first] === last) {
@@ -916,6 +917,16 @@ function stripOuterQuotes(value, enabled, logger, context) {
         if (logger && stripped !== text) {
             logger('Outer quotes removed', text, stripped, context);
         }
+        return stripped;
+    }
+    if (pairs[first] && !closingChars.has(last)) {
+        const stripped = text.slice(1);
+        if (logger) logger('Unmatched opening quote removed', text, stripped, context);
+        return stripped;
+    }
+    if (closingChars.has(last) && !pairs[first]) {
+        const stripped = text.slice(0, -1);
+        if (logger) logger('Unmatched closing quote removed', text, stripped, context);
         return stripped;
     }
     return text;
