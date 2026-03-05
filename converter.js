@@ -277,7 +277,7 @@ function getTxtSettings() {
         }
 
         function formatIntegerPart(intPart, separator, lang) {
-            if (lang === "ES" && intPart.length <= 4) {
+            if (intPart.length <= 4) {
                 return intPart;
             }
             return intPart.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
@@ -1217,10 +1217,8 @@ function txtToXlsx(data) {
         if (hasDateColumn) {
             newRow.splice(1, 1);
         }
-        // Convert language code in first column (e.g., EN -> en_EN)
-        if (index > 0 && newRow[0]) {
-            newRow[0] = shortToLocale(newRow[0]);
-        }
+        // Keep original language code as-is (EN stays EN, en_EN stays en_EN)
+        
         return newRow;
     });
 

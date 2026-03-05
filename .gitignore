@@ -18,6 +18,10 @@ node_modules/
 # Temporary files
 *.tmp
 ~$*
+*.log
+*.pid
+.http*.log
+.http*.pid
 
 # Tests
 tests/
