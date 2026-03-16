@@ -205,6 +205,34 @@
         </aside>
     </div>
 
+    <footer class="app-footer">
+        <a href="pptx-convert.html" style="color: #4da6ff; text-decoration: none; font-size: 0.85rem; margin-right: 16px;">PPTX Converter →</a>
+        <button type="button" class="link-button" id="openChangelog">Last update: 05-03-2026</button>
+    </footer>
+
+    <div class="modal-overlay" id="changelogModal" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="changelogTitle">
+            <div class="modal-header">
+                <h3 class="modal-title" id="changelogTitle">Changelog</h3>
+                <button type="button" class="modal-close" id="closeChangelog" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body">
+                <ul class="changelog-list">
+                    <li><span class="changelog-date">05-03-2026</span> — Fixed number grouping for short integers; removed auto language code conversion</li>
+                    <li><span class="changelog-date">26-02-2026</span> — Added handling for unmatched opening/closing quotes</li>
+                    <li><span class="changelog-date">24-02-2026</span> — Added optional encoding suffix in output filenames; added US language code</li>
+                    <li><span class="changelog-date">23-02-2026</span> — Added BOM-less UTF-16LE encoding detection</li>
+                    <li><span class="changelog-date">22-02-2026</span> — Fixed Unicode word boundary issues in NBSP rules; added Polish language support</li>
+                    <li><span class="changelog-date">11-02-2026</span> — Multi-file support with drag & drop; improved logging with filenames</li>
+                    <li><span class="changelog-date">09-02-2026</span> — Minor bug fix in converter</li>
+                    <li><span class="changelog-date">09-02-2026</span> — Added quote stripping, unit case normalization, and global formatting rules</li>
+                    <li><span class="changelog-date">06-02-2026</span> — Minor converter fix</li>
+                    <li><span class="changelog-date">06-02-2026</span> — Added documentation pages for converter and Lokalise</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
     <script src="converter.js"></script>
     <script src="exporter.js"></script>
     <script>

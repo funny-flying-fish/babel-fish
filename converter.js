@@ -510,9 +510,30 @@ closeRules.addEventListener('click', closeRulesModal);
 rulesModal.addEventListener('click', (e) => {
     if (e.target === rulesModal) closeRulesModal();
 });
+
+const changelogModal = document.getElementById('changelogModal');
+const openChangelog = document.getElementById('openChangelog');
+const closeChangelog = document.getElementById('closeChangelog');
+
+function openChangelogModal() {
+    changelogModal.classList.add('is-open');
+    changelogModal.setAttribute('aria-hidden', 'false');
+}
+function closeChangelogModal() {
+    changelogModal.classList.remove('is-open');
+    changelogModal.setAttribute('aria-hidden', 'true');
+}
+
+openChangelog.addEventListener('click', openChangelogModal);
+closeChangelog.addEventListener('click', closeChangelogModal);
+changelogModal.addEventListener('click', (e) => {
+    if (e.target === changelogModal) closeChangelogModal();
+});
+
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && rulesModal.classList.contains('is-open')) {
-        closeRulesModal();
+    if (e.key === 'Escape') {
+        if (rulesModal.classList.contains('is-open')) closeRulesModal();
+        if (changelogModal.classList.contains('is-open')) closeChangelogModal();
     }
 });
 

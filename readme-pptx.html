@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel Fish - PPTX Converter Instructions</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px 30px; background: #fff; }
+        .lang-switch { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .lang-btn { padding: 8px 16px; border: 2px solid #4a69bd; background: white; color: #4a69bd; border-radius: 20px; cursor: pointer; font-weight: 500; transition: all 0.2s; }
+        .lang-btn:hover { background: #f0f4ff; }
+        .lang-btn.active { background: #4a69bd; color: white; }
+        h1 { text-align: center; color: #1a1a2e; font-size: 2.2em; margin-bottom: 30px; }
+        h2 { color: #4a69bd; font-size: 1.4em; margin-top: 35px; margin-bottom: 15px; padding-left: 15px; border-left: 4px solid #4a69bd; }
+        h3 { color: #1a1a2e; font-size: 1.1em; margin-top: 25px; margin-bottom: 10px; }
+        p { margin-bottom: 12px; }
+        .intro-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 25px; border-radius: 12px; margin-bottom: 30px; }
+        .intro-box h3 { color: white; margin-top: 0; font-size: 1.2em; }
+        .intro-box ul { margin-left: 20px; }
+        .intro-box li { margin-bottom: 8px; }
+        .step-box { background: #f8f9fa; border-radius: 10px; padding: 20px 25px; margin: 20px 0; border-left: 5px solid #4a69bd; }
+        .step-number { display: inline-block; background: #4a69bd; color: white; width: 32px; height: 32px; border-radius: 50%; text-align: center; line-height: 32px; font-weight: bold; margin-right: 12px; }
+        .step-title { font-weight: 600; font-size: 1.1em; color: #1a1a2e; }
+        .step-content { margin-top: 12px; margin-left: 44px; }
+        .warning-box { background: #ffebee; border: 1px solid #ef5350; border-radius: 8px; padding: 15px 20px; margin: 20px 0; }
+        .tip-box { background: #e8f5e9; border: 1px solid #66bb6a; border-radius: 8px; padding: 15px 20px; margin: 20px 0; }
+        ul, ol { margin-left: 25px; margin-bottom: 15px; }
+        li { margin-bottom: 8px; }
+        .diagram { background: #f5f5f5; border: 2px dashed #ccc; border-radius: 10px; padding: 20px; margin: 20px 0; text-align: center; }
+        .diagram-row { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+        .diagram-file { background: #fff; border: 2px solid #4a69bd; border-radius: 8px; padding: 10px 15px; font-weight: 500; }
+        .diagram-arrow { font-size: 1.5em; color: #4a69bd; }
+        .diagram-result { background: #4a69bd; color: white; border-radius: 8px; padding: 12px 20px; font-weight: 600; }
+        code { background: #f4f4f4; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 0.9em; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th, td { border: 1px solid #ddd; padding: 10px 12px; text-align: left; }
+        th { background: #4a69bd; color: white; }
+        tr:nth-child(even) { background: #f8f9fa; }
+        .footer { margin-top: 50px; padding-top: 20px; border-top: 1px solid #ddd; text-align: center; color: #888; font-size: 0.9em; }
+        .footer a { color: #4a69bd; text-decoration: none; }
+        .lang-ru { display: none; }
+        .lang-en { display: block; }
+        @media print { body { padding: 20px; } .step-box { break-inside: avoid; } .lang-switch { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="lang-switch">
+        <button class="lang-btn active" onclick="switchLang('en')">English</button>
+        <button class="lang-btn" onclick="switchLang('ru')">Russian</button>
+    </div>
+
+    <!-- ENGLISH VERSION -->
+    <div class="lang-en">
+        <h1>Babel Fish — PPTX Converter</h1>
+
+        <div class="intro-box">
+            <h3>What does this tool do?</h3>
+            <p>Extracts text from PowerPoint (.pptx) files into an XLSX translation template, and injects translations back — producing a localized presentation.</p>
+            <ul>
+                <li>PPTX → XLSX: extract all text with positional keys</li>
+                <li>XLSX → PPTX: inject translated text back into the original file</li>
+                <li>Preserves formatting (font, size, color, bold)</li>
+                <li>Switch languages without re-uploading files</li>
+            </ul>
+        </div>
+
+        <div class="diagram">
+            <p style="margin-bottom: 15px; color: #666;"><strong>Workflow:</strong></p>
+            <div class="diagram-row">
+                <div class="diagram-file">Presentation.pptx</div>
+                <div class="diagram-arrow">→</div>
+                <div class="diagram-result">Translations.xlsx</div>
+            </div>
+            <div style="margin: 15px 0; color: #666;">translate → then inject back</div>
+            <div class="diagram-row">
+                <div class="diagram-file">Translations.xlsx</div>
+                <div class="diagram-arrow">+</div>
+                <div class="diagram-file">Presentation.pptx</div>
+                <div class="diagram-arrow">→</div>
+                <div class="diagram-result">Translated.pptx</div>
+            </div>
+        </div>
+
+        <h2>Tab 1: PPTX → XLSX</h2>
+
+        <p>Extracts all text from a PowerPoint presentation into a structured XLSX file ready for translation.</p>
+
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Upload a .pptx file</span>
+            <div class="step-content">
+                <p>Drag and drop a PowerPoint file into the dropzone, or click to browse.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Set the source language</span>
+            <div class="step-content">
+                <p>Enter the language code of the original text (default: <code>EN</code>). This becomes the column header in the XLSX.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">3</span>
+            <span class="step-title">Click "Extract text"</span>
+            <div class="step-content">
+                <p>The tool parses every slide, extracts text from shapes and paragraphs, and generates an XLSX file.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">4</span>
+            <span class="step-title">Download the XLSX and add translations</span>
+            <div class="step-content">
+                <p>Open the downloaded file and add new columns for each target language (e.g. <code>ES</code>, <code>FR</code>, <code>DE</code>).</p>
+            </div>
+        </div>
+
+        <h3>XLSX structure</h3>
+        <table>
+            <tr><th>Column A (Key)</th><th>Column B (EN)</th><th>Column C (ES)</th></tr>
+            <tr><td><code>s1_sh0_p0</code></td><td>Original text</td><td>Texto traducido</td></tr>
+            <tr><td><code>s1_sh1_p0</code></td><td>Another text</td><td>Otro texto</td></tr>
+            <tr><td><code>s2_sh3_p1</code></td><td>Slide 2 content</td><td>Contenido diapositiva 2</td></tr>
+        </table>
+
+        <p>Keys encode the exact position: <code>s{slide}_sh{shape}_p{paragraph}</code>. Do not modify them — they are used to match text back to the correct location in the PPTX.</p>
+
+        <h2>Tab 2: XLSX → PPTX</h2>
+
+        <p>Takes a translated XLSX and the original PPTX, and produces a new presentation with the translated text.</p>
+
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Upload the translated XLSX</span>
+            <div class="step-content">
+                <p>Drop the XLSX file with translations into the left dropzone. The language dropdown will populate automatically from the header row.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Upload the original PPTX</span>
+            <div class="step-content">
+                <p>Drop the same .pptx file that was used for extraction into the right dropzone. This serves as the template.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">3</span>
+            <span class="step-title">Select a language and convert</span>
+            <div class="step-content">
+                <p>Pick the target language from the dropdown and click <strong>Convert</strong>. The tool replaces text in every matched position and generates a new .pptx file.</p>
+            </div>
+        </div>
+
+        <div class="tip-box">
+            <strong>Tip:</strong> You can switch to a different language in the dropdown and click Convert again — no need to re-upload the files.
+        </div>
+
+        <h2>How formatting is preserved</h2>
+        <p>The translated text is placed into the first text run of each paragraph. The formatting properties (font, size, color, bold, italic) of that first run are preserved. If the original paragraph had multiple runs with different formatting, only the first run's style is kept — subsequent runs are emptied.</p>
+
+        <div class="warning-box">
+            <strong>Important:</strong> Do not change or reorder the keys in column A of the XLSX. If a key doesn't match any position in the PPTX, that translation will be silently skipped.
+        </div>
+
+        <h2>FAQ</h2>
+
+        <h3>Does it handle images, charts, or tables?</h3>
+        <p>No. The tool only extracts and replaces text inside shapes (<code>p:sp</code> elements). Images, charts, SmartArt, and tables are left unchanged.</p>
+
+        <h3>What if I add or remove slides after extraction?</h3>
+        <p>The keys are tied to slide numbers and shape order. If slides are added, removed, or reordered, the keys will no longer match. Re-extract the text from the updated PPTX.</p>
+
+        <h3>Can I use this for partial translations?</h3>
+        <p>Yes. Only cells with non-empty values in the selected language column will be replaced. Missing translations are left as-is.</p>
+
+        <h3>How large can the PPTX be?</h3>
+        <p>The tool runs entirely in the browser. Files up to ~100 MB work fine in modern browsers. Very large files may take a few seconds to process.</p>
+    </div>
+
+    <!-- RUSSIAN VERSION -->
+    <div class="lang-ru">
+        <h1>Babel Fish — PPTX Конвертер</h1>
+
+        <div class="intro-box">
+            <h3>Что делает этот инструмент?</h3>
+            <p>Извлекает текст из PowerPoint (.pptx) файлов в XLSX-шаблон для перевода и вставляет переводы обратно — создавая локализованную презентацию.</p>
+            <ul>
+                <li>PPTX → XLSX: извлечение текста с позиционными ключами</li>
+                <li>XLSX → PPTX: вставка переведённого текста обратно в оригинальный файл</li>
+                <li>Сохранение форматирования (шрифт, размер, цвет, жирность)</li>
+                <li>Переключение языков без повторной загрузки файлов</li>
+            </ul>
+        </div>
+
+        <div class="diagram">
+            <p style="margin-bottom: 15px; color: #666;"><strong>Процесс:</strong></p>
+            <div class="diagram-row">
+                <div class="diagram-file">Презентация.pptx</div>
+                <div class="diagram-arrow">→</div>
+                <div class="diagram-result">Переводы.xlsx</div>
+            </div>
+            <div style="margin: 15px 0; color: #666;">перевести → затем вставить обратно</div>
+            <div class="diagram-row">
+                <div class="diagram-file">Переводы.xlsx</div>
+                <div class="diagram-arrow">+</div>
+                <div class="diagram-file">Презентация.pptx</div>
+                <div class="diagram-arrow">→</div>
+                <div class="diagram-result">Переведённая.pptx</div>
+            </div>
+        </div>
+
+        <h2>Вкладка 1: PPTX → XLSX</h2>
+
+        <p>Извлекает весь текст из PowerPoint-презентации в структурированный XLSX-файл, готовый для перевода.</p>
+
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Загрузите .pptx файл</span>
+            <div class="step-content">
+                <p>Перетащите файл PowerPoint в зону загрузки или нажмите для выбора.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Укажите язык оригинала</span>
+            <div class="step-content">
+                <p>Введите код языка исходного текста (по умолчанию: <code>EN</code>). Он станет заголовком колонки в XLSX.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">3</span>
+            <span class="step-title">Нажмите «Extract text»</span>
+            <div class="step-content">
+                <p>Инструмент разберёт каждый слайд, извлечёт текст из фигур и абзацев и сгенерирует XLSX-файл.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">4</span>
+            <span class="step-title">Скачайте XLSX и добавьте переводы</span>
+            <div class="step-content">
+                <p>Откройте скачанный файл и добавьте новые колонки для каждого целевого языка (например, <code>ES</code>, <code>FR</code>, <code>DE</code>).</p>
+            </div>
+        </div>
+
+        <h3>Структура XLSX</h3>
+        <table>
+            <tr><th>Колонка A (Ключ)</th><th>Колонка B (EN)</th><th>Колонка C (ES)</th></tr>
+            <tr><td><code>s1_sh0_p0</code></td><td>Original text</td><td>Texto traducido</td></tr>
+            <tr><td><code>s1_sh1_p0</code></td><td>Another text</td><td>Otro texto</td></tr>
+            <tr><td><code>s2_sh3_p1</code></td><td>Slide 2 content</td><td>Contenido diapositiva 2</td></tr>
+        </table>
+
+        <p>Ключи кодируют точную позицию: <code>s{слайд}_sh{фигура}_p{абзац}</code>. Не изменяйте их — они используются для сопоставления текста с правильным местом в PPTX.</p>
+
+        <h2>Вкладка 2: XLSX → PPTX</h2>
+
+        <p>Берёт переведённый XLSX и оригинальный PPTX и создаёт новую презентацию с переведённым текстом.</p>
+
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Загрузите переведённый XLSX</span>
+            <div class="step-content">
+                <p>Перетащите XLSX-файл с переводами в левую зону загрузки. Выпадающий список языков заполнится автоматически из строки заголовка.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Загрузите оригинальный PPTX</span>
+            <div class="step-content">
+                <p>Перетащите тот же .pptx файл, который использовался для извлечения, в правую зону загрузки. Он служит шаблоном.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">3</span>
+            <span class="step-title">Выберите язык и конвертируйте</span>
+            <div class="step-content">
+                <p>Выберите целевой язык из выпадающего списка и нажмите <strong>Convert</strong>. Инструмент заменит текст в каждой совпавшей позиции и сгенерирует новый .pptx файл.</p>
+            </div>
+        </div>
+
+        <div class="tip-box">
+            <strong>Совет:</strong> Можно выбрать другой язык в выпадающем списке и нажать Convert снова — файлы загружать заново не нужно.
+        </div>
+
+        <h2>Как сохраняется форматирование</h2>
+        <p>Переведённый текст помещается в первый текстовый фрагмент (run) каждого абзаца. Свойства форматирования (шрифт, размер, цвет, жирность, курсив) этого фрагмента сохраняются. Если в оригинальном абзаце было несколько фрагментов с разным форматированием, сохраняется стиль только первого — остальные очищаются.</p>
+
+        <div class="warning-box">
+            <strong>Важно:</strong> Не изменяйте и не переставляйте ключи в колонке A файла XLSX. Если ключ не совпадает ни с одной позицией в PPTX, этот перевод будет пропущен.
+        </div>
+
+        <h2>FAQ</h2>
+
+        <h3>Работает ли с изображениями, диаграммами и таблицами?</h3>
+        <p>Нет. Инструмент извлекает и заменяет только текст внутри фигур (элементы <code>p:sp</code>). Изображения, диаграммы, SmartArt и таблицы остаются без изменений.</p>
+
+        <h3>Что если добавить или удалить слайды после извлечения?</h3>
+        <p>Ключи привязаны к номерам слайдов и порядку фигур. Если слайды добавлены, удалены или переставлены, ключи перестанут совпадать. Извлеките текст заново из обновлённого PPTX.</p>
+
+        <h3>Можно ли использовать для частичного перевода?</h3>
+        <p>Да. Заменяются только ячейки с непустыми значениями в выбранной языковой колонке. Отсутствующие переводы остаются как есть.</p>
+
+        <h3>Какой максимальный размер PPTX?</h3>
+        <p>Инструмент работает полностью в браузере. Файлы до ~100 МБ обрабатываются нормально в современных браузерах. Очень большие файлы могут обрабатываться несколько секунд.</p>
+    </div>
+
+    <div class="footer">
+        <p>Babel Fish — PPTX Converter | <a href="pptx-convert.html">Open converter</a></p>
+    </div>
+
+    <script>
+        function switchLang(lang) {
+            const en = document.querySelectorAll('.lang-en');
+            const ru = document.querySelectorAll('.lang-ru');
+            const btns = document.querySelectorAll('.lang-btn');
+            btns.forEach(b => b.classList.remove('active'));
+            if (lang === 'en') {
+                en.forEach(el => el.style.display = 'block');
+                ru.forEach(el => el.style.display = 'none');
+                btns[0].classList.add('active');
+            } else {
+                en.forEach(el => el.style.display = 'none');
+                ru.forEach(el => el.style.display = 'block');
+                btns[1].classList.add('active');
+            }
+        }
+        switchLang('en');
+    </script>
+</body>
+</html>

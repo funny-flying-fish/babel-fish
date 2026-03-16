@@ -493,6 +493,86 @@ button:disabled {
     font-weight: 500;
 }
 
+/* Footer */
+.app-footer {
+    text-align: center;
+    padding: 16px 0 8px;
+    color: #555;
+    font-size: 0.8rem;
+}
+.app-footer .link-button {
+    color: #555;
+    font-size: 0.8rem;
+}
+.app-footer .link-button:hover {
+    color: #888;
+}
+
+/* Changelog */
+.changelog-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+.changelog-list li {
+    padding: 6px 0;
+    border-bottom: 1px solid #2a2a2a;
+    font-size: 0.9rem;
+    color: #bbb;
+}
+.changelog-list li:last-child {
+    border-bottom: none;
+}
+.changelog-date {
+    color: #888;
+    font-variant-numeric: tabular-nums;
+    margin-right: 2px;
+}
+
+/* PPTX Converter */
+.pptx-layout {
+    grid-template-columns: 1fr;
+    max-width: 680px;
+    margin: 0 auto;
+}
+.page-header {
+    margin-bottom: 12px;
+}
+.back-link {
+    color: #4da6ff;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+.back-link:hover {
+    text-decoration: underline;
+}
+.pptx-dual-dropzones {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.dropzone-filename {
+    display: none;
+    margin-top: 10px;
+    padding: 6px 10px;
+    background: #222;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    color: #ccc;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.lang-input {
+    width: 90px;
+    padding: 6px 10px;
+    border: 1px solid #444;
+    border-radius: 3px;
+    background: #333;
+    color: #fff;
+    font-family: monospace;
+}
+
 @media (max-width: 900px) {
     body {
         max-width: 720px;
@@ -507,6 +587,9 @@ button:disabled {
         flex: 1;
         min-width: 120px;
         text-align: center;
+    }
+    .pptx-dual-dropzones {
+        grid-template-columns: 1fr;
     }
 }
 

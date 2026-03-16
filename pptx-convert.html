@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel fish - PPTX Converter</title>
+    <script src="vendor/jszip.min.js"></script>
+    <script src="vendor/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="main.css">
+</head>
+
+<body>
+    <div class="layout pptx-layout">
+        <div class="main-column">
+            <div class="page-header">
+                <a href="index.html" class="back-link">← Back to main converter</a>
+            </div>
+
+            <nav class="tabs-nav">
+                <button class="tab-btn active" data-tab="pptx-to-xlsx">PPTX → XLSX</button>
+                <button class="tab-btn" data-tab="xlsx-to-pptx">XLSX → PPTX</button>
+            </nav>
+
+            <!-- Tab 1: PPTX → XLSX -->
+            <div class="tab-content active" id="tab-pptx-to-xlsx">
+                <div class="section">
+                    <h2>PPTX → XLSX</h2>
+                    <p class="note" style="text-align: left; margin: 0 0 16px;">
+                        Extract all text from a PowerPoint file into an XLSX translation template.
+                    </p>
+                    <div class="dropzone" id="pptxExtractDropzone">
+                        <input type="file" id="pptxExtractInput" accept=".pptx" hidden>
+                        <div class="dropzone-icon">📊</div>
+                        <div class="dropzone-text">Drop .pptx file here or <span class="dropzone-link">browse</span></div>
+                        <div class="dropzone-hint">Single file</div>
+                        <div class="dropzone-filename" id="pptxExtractFilename"></div>
+                    </div>
+                    <div class="form-row" style="margin-top: 12px;">
+                        <label for="sourceLanguage">Source language:</label>
+                        <input type="text" id="sourceLanguage" class="lang-input" value="EN" placeholder="e.g. EN">
+                        <button id="extractBtn" disabled>Extract text</button>
+                    </div>
+                    <div class="download-area" id="extractDownload"></div>
+                    <div class="error" id="extractError"></div>
+                </div>
+
+                <ul class="note-list">
+                    <li>Text is extracted from all slides, preserving shape and paragraph order.</li>
+                    <li>Keys encode position: <code>s{slide}_sh{shape}_p{paragraph}</code></li>
+                    <li>Empty paragraphs are skipped.</li>
+                    <li>Add translation columns to the XLSX, then use the XLSX → PPTX tab to inject.</li>
+                </ul>
+            </div>
+
+            <!-- Tab 2: XLSX → PPTX -->
+            <div class="tab-content" id="tab-xlsx-to-pptx">
+                <div class="section">
+                    <h2>XLSX → PPTX</h2>
+                    <p class="note" style="text-align: left; margin: 0 0 16px;">
+                        Inject translated text from an XLSX back into the original PowerPoint file.
+                    </p>
+                    <div class="pptx-dual-dropzones">
+                        <div class="dropzone" id="xlsxInjectDropzone">
+                            <input type="file" id="xlsxInjectInput" accept=".xlsx" hidden>
+                            <div class="dropzone-icon">📋</div>
+                            <div class="dropzone-text">Drop .xlsx here or <span class="dropzone-link">browse</span></div>
+                            <div class="dropzone-hint">Translation file</div>
+                            <div class="dropzone-filename" id="xlsxInjectFilename"></div>
+                        </div>
+                        <div class="dropzone" id="pptxInjectDropzone">
+                            <input type="file" id="pptxInjectInput" accept=".pptx" hidden>
+                            <div class="dropzone-icon">📊</div>
+                            <div class="dropzone-text">Drop .pptx here or <span class="dropzone-link">browse</span></div>
+                            <div class="dropzone-hint">Original presentation</div>
+                            <div class="dropzone-filename" id="pptxInjectFilename"></div>
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-top: 12px;">
+                        <label for="langSelect">Language:</label>
+                        <select id="langSelect" disabled>
+                            <option value="">— Load XLSX first —</option>
+                        </select>
+                        <button id="injectBtn" disabled>Convert</button>
+                    </div>
+                    <div class="download-area" id="injectDownload"></div>
+                    <div class="error" id="injectError"></div>
+                </div>
+
+                <ul class="note-list">
+                    <li>XLSX must have keys in column A and language columns starting from column B.</li>
+                    <li>The original .pptx is needed as a template — text is replaced in-place.</li>
+                    <li>Formatting (font, size, color, bold) from the first text run is preserved.</li>
+                    <li>You can switch languages and re-convert without re-uploading files.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <footer class="app-footer">
+        <a href="readme-pptx.html" style="color: #555; text-decoration: none; font-size: 0.8rem;">Instructions</a>
+    </footer>
+
+    <script src="pptx-converter.js"></script>
+    <script>
+        const tabTitles = {
+            'pptx-to-xlsx': 'PPTX → XLSX',
+            'xlsx-to-pptx': 'XLSX → PPTX'
+        };
+
+        function activateTab(tabName) {
+            const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+            if (!btn) return;
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            btn.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const tabName = btn.dataset.tab;
+                activateTab(tabName);
+                history.replaceState(null, '', '#' + tabName);
+            });
+        });
+
+        const hash = window.location.hash.slice(1);
+        if (hash && document.querySelector(`.tab-btn[data-tab="${hash}"]`)) {
+            activateTab(hash);
+        }
+
+        window.addEventListener('hashchange', () => {
+            const newHash = window.location.hash.slice(1);
+            if (newHash && document.querySelector(`.tab-btn[data-tab="${newHash}"]`)) {
+                activateTab(newHash);
+            }
+        });
+    </script>
+</body>
+
+</html>
