@@ -28,6 +28,34 @@
     let injectPptxName = '';
     let translationData = null; // parsed 2D array from XLSX
 
+    // ── Download helpers (Safari blob: URL workaround) ─────────────
+
+    function triggerBlobDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.style.display = 'none';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }, 200);
+    }
+
+    function createDownloadLink(blob, filename) {
+        const link = document.createElement('a');
+        link.href = '#';
+        link.textContent = `Download ${filename}`;
+        link.style.color = '#4da6ff';
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            triggerBlobDownload(blob, filename);
+        });
+        return link;
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────
 
     function readFileAsArrayBuffer(file) {
@@ -96,13 +124,7 @@
         const blob = new Blob([data], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.textContent = `Download ${filename}`;
-        a.style.color = '#4da6ff';
-        return a;
+        return createDownloadLink(blob, filename);
     }
 
     async function handleExtract() {
@@ -257,13 +279,7 @@
             const langCode = String(translationData[0][colIndex] || 'translated').trim();
             const baseName = injectPptxName.replace(/\.pptx$/i, '');
             const filename = `${baseName}_${langCode}.pptx`;
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.textContent = `Download ${filename}`;
-            a.style.color = '#4da6ff';
-            injectDownload.appendChild(a);
+            injectDownload.appendChild(createDownloadLink(blob, filename));
 
             const info = document.createElement('div');
             info.style.cssText = 'color: #6bbd6b; font-size: 0.85rem; margin-top: 4px;';

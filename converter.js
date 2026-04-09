@@ -1328,6 +1328,34 @@ function encodeString(str, encoding) {
     return new Uint8Array(bytes);
 }
 
+// Safari ignores the download attribute on blob: URLs and tries to navigate,
+// causing WebKitBlobResource error 1. Create a fresh blob URL at click time
+// and trigger a programmatic click so the download starts immediately.
+function triggerBlobDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }, 200);
+}
+
+function createDownloadLink(blob, filename) {
+    const link = document.createElement('a');
+    link.href = '#';
+    link.textContent = `Download ${filename}`;
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        triggerBlobDownload(blob, filename);
+    });
+    return link;
+}
+
 // Trigger TXT download with specified encoding
 function downloadTXT(content, filename, encoding) {
     const bytes = encodeString(content, encoding);
@@ -1335,12 +1363,7 @@ function downloadTXT(content, filename, encoding) {
         ? [new Uint8Array([0xFF, 0xFE]), bytes]
         : [bytes];
     const blob = new Blob(parts, { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.textContent = `Download ${filename}`;
-    return link;
+    return createDownloadLink(blob, filename);
 }
 
 // Trigger XLSX download
@@ -1350,12 +1373,7 @@ function downloadXLSX(data, filename) {
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
     const xlsxData = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([xlsxData], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.textContent = `Download ${filename}`;
-    return link;
+    return createDownloadLink(blob, filename);
 }
 
 // Convert XLSX to TXT (multi-file)
