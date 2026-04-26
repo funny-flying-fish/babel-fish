@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Babel Fish - PPTX Converter Instructions</title>
+    <link rel="icon" href="favicon/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="favicon/favicon.png" type="image/png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; padding: 40px 30px; background: #fff; }
@@ -56,12 +58,13 @@
 
         <div class="intro-box">
             <h3>What does this tool do?</h3>
-            <p>Extracts text from PowerPoint (.pptx) files into an XLSX translation template, and injects translations back — producing a localized presentation.</p>
+            <p>Prepares PowerPoint (.pptx) files with stable translation IDs, extracts text into an XLSX translation template, and injects translations back — producing a localized presentation.</p>
             <ul>
-                <li>PPTX → XLSX: extract all text with positional keys</li>
-                <li>XLSX → PPTX: inject translated text back into the original file</li>
+                <li>Prepare PPTX IDs: add stable Selection Pane names to editable text containers</li>
+                <li>PPTX → XLSX: extract text by <code>shapeName + paragraphIndex</code></li>
+                <li>XLSX → PPTX: inject translated text back into the marked file</li>
                 <li>Preserves formatting (font, size, color, bold)</li>
-                <li>Switch languages without re-uploading files</li>
+                <li>Reports missing, duplicated, or moved IDs during conversion</li>
             </ul>
         </div>
 
@@ -70,21 +73,43 @@
             <div class="diagram-row">
                 <div class="diagram-file">Presentation.pptx</div>
                 <div class="diagram-arrow">→</div>
+                <div class="diagram-result">Marked.pptx</div>
+                <div class="diagram-arrow">→</div>
                 <div class="diagram-result">Translations.xlsx</div>
             </div>
             <div style="margin: 15px 0; color: #666;">translate → then inject back</div>
             <div class="diagram-row">
                 <div class="diagram-file">Translations.xlsx</div>
                 <div class="diagram-arrow">+</div>
-                <div class="diagram-file">Presentation.pptx</div>
+                <div class="diagram-file">Marked.pptx</div>
                 <div class="diagram-arrow">→</div>
                 <div class="diagram-result">Translated.pptx</div>
             </div>
         </div>
 
-        <h2>Tab 1: PPTX → XLSX</h2>
+        <h2>Tab 1: Prepare PPTX IDs</h2>
 
-        <p>Extracts all text from a PowerPoint presentation into a structured XLSX file ready for translation.</p>
+        <p>Run this first. The tool writes stable translation IDs into the PowerPoint Selection Pane names stored in <code>cNvPr name</code>. Existing IDs such as <code>tr_7f3a91_body</code> are kept; duplicates are repaired.</p>
+
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Upload a .pptx file</span>
+            <div class="step-content">
+                <p>Drag and drop an original or already marked PowerPoint file into the Prepare tab.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Click "Prepare PPTX IDs"</span>
+            <div class="step-content">
+                <p>The tool marks text containers with names like <code>tr_7f3a91_body</code>. Re-run this step after duplicating slides to normalize copied IDs.</p>
+            </div>
+        </div>
+
+        <h2>Tab 2: PPTX → XLSX</h2>
+
+        <p>Extracts text from a marked PowerPoint presentation into a structured XLSX file ready for translation.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
@@ -106,7 +131,7 @@
             <span class="step-number">3</span>
             <span class="step-title">Click "Extract text"</span>
             <div class="step-content">
-                <p>The tool parses every slide, extracts text from shapes and paragraphs, and generates an XLSX file.</p>
+                <p>The tool parses every slide, extracts text from shapes, graphic frames, tables stored as editable DrawingML text, and PowerPoint paragraphs, then generates an XLSX file.</p>
             </div>
         </div>
 
@@ -120,17 +145,15 @@
 
         <h3>XLSX structure</h3>
         <table>
-            <tr><th>Column A (Key)</th><th>Column B (EN)</th><th>Column C (ES)</th></tr>
-            <tr><td><code>s1_sh0_p0</code></td><td>Original text</td><td>Texto traducido</td></tr>
-            <tr><td><code>s1_sh1_p0</code></td><td>Another text</td><td>Otro texto</td></tr>
-            <tr><td><code>s2_sh3_p1</code></td><td>Slide 2 content</td><td>Contenido diapositiva 2</td></tr>
+            <tr><th>key</th><th>slideNumber</th><th>shapeName</th><th>shapeId</th><th>containerType</th><th>paragraphIndex</th><th>EN</th><th>ES</th></tr>
+            <tr><td><code>tr_7f3a91_body__p0</code></td><td>2</td><td><code>tr_7f3a91_body</code></td><td>39</td><td>shape</td><td>0</td><td>Original text</td><td>Texto traducido</td></tr>
         </table>
 
-        <p>Keys encode the exact position: <code>s{slide}_sh{shape}_p{paragraph}</code>. Do not modify them — they are used to match text back to the correct location in the PPTX.</p>
+        <p>The real match is <code>shapeName + paragraphIndex</code>. <code>slideNumber</code> is informational: if a text box moves to another slide, the tool still replaces it by <code>shapeName</code> and shows a warning.</p>
 
-        <h2>Tab 2: XLSX → PPTX</h2>
+        <h2>Tab 3: XLSX → PPTX</h2>
 
-        <p>Takes a translated XLSX and the original PPTX, and produces a new presentation with the translated text.</p>
+        <p>Takes a translated XLSX and the marked PPTX, and produces a new presentation with the translated text.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
@@ -144,7 +167,7 @@
             <span class="step-number">2</span>
             <span class="step-title">Upload the original PPTX</span>
             <div class="step-content">
-                <p>Drop the same .pptx file that was used for extraction into the right dropzone. This serves as the template.</p>
+                <p>Drop the marked .pptx file into the right dropzone. This serves as the template.</p>
             </div>
         </div>
 
@@ -164,16 +187,16 @@
         <p>The translated text is placed into the first text run of each paragraph. The formatting properties (font, size, color, bold, italic) of that first run are preserved. If the original paragraph had multiple runs with different formatting, only the first run's style is kept — subsequent runs are emptied.</p>
 
         <div class="warning-box">
-            <strong>Important:</strong> Do not change or reorder the keys in column A of the XLSX. If a key doesn't match any position in the PPTX, that translation will be silently skipped.
+            <strong>Important:</strong> Do not change <code>shapeName</code> or <code>paragraphIndex</code> in the XLSX. If an ID cannot be matched, the tool skips that row and shows a warning report.
         </div>
 
         <h2>FAQ</h2>
 
         <h3>Does it handle images, charts, or tables?</h3>
-        <p>No. The tool only extracts and replaces text inside shapes (<code>p:sp</code> elements). Images, charts, SmartArt, and tables are left unchanged.</p>
+            <p>It handles editable text inside shapes (<code>p:sp</code>) and graphic frames (<code>p:graphicFrame</code>), including many tables. Images and chart labels that are not stored as editable DrawingML text are left unchanged.</p>
 
         <h3>What if I add or remove slides after extraction?</h3>
-        <p>The keys are tied to slide numbers and shape order. If slides are added, removed, or reordered, the keys will no longer match. Re-extract the text from the updated PPTX.</p>
+            <p>The main IDs are not tied to slide numbers. If slides are reordered, the tool matches by <code>shapeName</code>. If slides are duplicated, PowerPoint may copy the same IDs, so run Prepare PPTX IDs again before extracting or injecting.</p>
 
         <h3>Can I use this for partial translations?</h3>
         <p>Yes. Only cells with non-empty values in the selected language column will be replaced. Missing translations are left as-is.</p>
@@ -188,12 +211,13 @@
 
         <div class="intro-box">
             <h3>Что делает этот инструмент?</h3>
-            <p>Извлекает текст из PowerPoint (.pptx) файлов в XLSX-шаблон для перевода и вставляет переводы обратно — создавая локализованную презентацию.</p>
+            <p>Размечает PowerPoint (.pptx) стабильными ID для перевода, извлекает текст в XLSX-шаблон и вставляет переводы обратно — создавая локализованную презентацию.</p>
             <ul>
-                <li>PPTX → XLSX: извлечение текста с позиционными ключами</li>
-                <li>XLSX → PPTX: вставка переведённого текста обратно в оригинальный файл</li>
+                <li>Prepare PPTX IDs: добавление стабильных имён в Selection Pane для редактируемых текстовых контейнеров</li>
+                <li>PPTX → XLSX: извлечение текста по <code>shapeName + paragraphIndex</code></li>
+                <li>XLSX → PPTX: вставка переведённого текста обратно в размеченный файл</li>
                 <li>Сохранение форматирования (шрифт, размер, цвет, жирность)</li>
-                <li>Переключение языков без повторной загрузки файлов</li>
+                <li>Отчёты о пропавших, дублированных или перемещённых ID</li>
             </ul>
         </div>
 
@@ -202,21 +226,43 @@
             <div class="diagram-row">
                 <div class="diagram-file">Презентация.pptx</div>
                 <div class="diagram-arrow">→</div>
+                <div class="diagram-result">Marked.pptx</div>
+                <div class="diagram-arrow">→</div>
                 <div class="diagram-result">Переводы.xlsx</div>
             </div>
             <div style="margin: 15px 0; color: #666;">перевести → затем вставить обратно</div>
             <div class="diagram-row">
                 <div class="diagram-file">Переводы.xlsx</div>
                 <div class="diagram-arrow">+</div>
-                <div class="diagram-file">Презентация.pptx</div>
+                <div class="diagram-file">Marked.pptx</div>
                 <div class="diagram-arrow">→</div>
                 <div class="diagram-result">Переведённая.pptx</div>
             </div>
         </div>
 
-        <h2>Вкладка 1: PPTX → XLSX</h2>
+        <h2>Вкладка 1: Prepare PPTX IDs</h2>
 
-        <p>Извлекает весь текст из PowerPoint-презентации в структурированный XLSX-файл, готовый для перевода.</p>
+        <p>Сначала запустите этот шаг. Инструмент записывает стабильные ID перевода в имена объектов PowerPoint из Selection Pane, которые хранятся в <code>cNvPr name</code>. Уже существующие ID вроде <code>tr_7f3a91_body</code> сохраняются, дубли исправляются.</p>
+
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Загрузите .pptx файл</span>
+            <div class="step-content">
+                <p>Перетащите исходный или уже размеченный PowerPoint-файл во вкладку Prepare.</p>
+            </div>
+        </div>
+
+        <div class="step-box">
+            <span class="step-number">2</span>
+            <span class="step-title">Нажмите «Prepare PPTX IDs»</span>
+            <div class="step-content">
+                <p>Инструмент разметит текстовые контейнеры именами вроде <code>tr_7f3a91_body</code>. После дублирования слайдов запустите этот шаг снова, чтобы исправить скопированные ID.</p>
+            </div>
+        </div>
+
+        <h2>Вкладка 2: PPTX → XLSX</h2>
+
+        <p>Извлекает текст из размеченной PowerPoint-презентации в структурированный XLSX-файл, готовый для перевода.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
@@ -238,7 +284,7 @@
             <span class="step-number">3</span>
             <span class="step-title">Нажмите «Extract text»</span>
             <div class="step-content">
-                <p>Инструмент разберёт каждый слайд, извлечёт текст из фигур и абзацев и сгенерирует XLSX-файл.</p>
+                <p>Инструмент разберёт каждый слайд, извлечёт текст из фигур, graphic frame, таблиц, сохранённых как редактируемый DrawingML-текст, и абзацев PowerPoint, затем сгенерирует XLSX-файл.</p>
             </div>
         </div>
 
@@ -252,17 +298,15 @@
 
         <h3>Структура XLSX</h3>
         <table>
-            <tr><th>Колонка A (Ключ)</th><th>Колонка B (EN)</th><th>Колонка C (ES)</th></tr>
-            <tr><td><code>s1_sh0_p0</code></td><td>Original text</td><td>Texto traducido</td></tr>
-            <tr><td><code>s1_sh1_p0</code></td><td>Another text</td><td>Otro texto</td></tr>
-            <tr><td><code>s2_sh3_p1</code></td><td>Slide 2 content</td><td>Contenido diapositiva 2</td></tr>
+            <tr><th>key</th><th>slideNumber</th><th>shapeName</th><th>shapeId</th><th>containerType</th><th>paragraphIndex</th><th>EN</th><th>ES</th></tr>
+            <tr><td><code>tr_7f3a91_body__p0</code></td><td>2</td><td><code>tr_7f3a91_body</code></td><td>39</td><td>shape</td><td>0</td><td>Original text</td><td>Texto traducido</td></tr>
         </table>
 
-        <p>Ключи кодируют точную позицию: <code>s{слайд}_sh{фигура}_p{абзац}</code>. Не изменяйте их — они используются для сопоставления текста с правильным местом в PPTX.</p>
+        <p>Основное сопоставление идёт по <code>shapeName + paragraphIndex</code>. <code>slideNumber</code> справочный: если текстовое поле переехало на другой слайд, инструмент всё равно заменит его по <code>shapeName</code> и покажет предупреждение.</p>
 
-        <h2>Вкладка 2: XLSX → PPTX</h2>
+        <h2>Вкладка 3: XLSX → PPTX</h2>
 
-        <p>Берёт переведённый XLSX и оригинальный PPTX и создаёт новую презентацию с переведённым текстом.</p>
+        <p>Берёт переведённый XLSX и размеченный PPTX и создаёт новую презентацию с переведённым текстом.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
@@ -276,7 +320,7 @@
             <span class="step-number">2</span>
             <span class="step-title">Загрузите оригинальный PPTX</span>
             <div class="step-content">
-                <p>Перетащите тот же .pptx файл, который использовался для извлечения, в правую зону загрузки. Он служит шаблоном.</p>
+                <p>Перетащите размеченный .pptx файл в правую зону загрузки. Он служит шаблоном.</p>
             </div>
         </div>
 
@@ -296,16 +340,16 @@
         <p>Переведённый текст помещается в первый текстовый фрагмент (run) каждого абзаца. Свойства форматирования (шрифт, размер, цвет, жирность, курсив) этого фрагмента сохраняются. Если в оригинальном абзаце было несколько фрагментов с разным форматированием, сохраняется стиль только первого — остальные очищаются.</p>
 
         <div class="warning-box">
-            <strong>Важно:</strong> Не изменяйте и не переставляйте ключи в колонке A файла XLSX. Если ключ не совпадает ни с одной позицией в PPTX, этот перевод будет пропущен.
+            <strong>Важно:</strong> Не изменяйте <code>shapeName</code> и <code>paragraphIndex</code> в XLSX. Если ID не найден, инструмент пропустит эту строку и покажет отчёт предупреждений.
         </div>
 
         <h2>FAQ</h2>
 
         <h3>Работает ли с изображениями, диаграммами и таблицами?</h3>
-        <p>Нет. Инструмент извлекает и заменяет только текст внутри фигур (элементы <code>p:sp</code>). Изображения, диаграммы, SmartArt и таблицы остаются без изменений.</p>
+            <p>Инструмент работает с редактируемым текстом внутри фигур (<code>p:sp</code>) и graphic frame (<code>p:graphicFrame</code>), включая многие таблицы. Изображения и подписи диаграмм, которые не хранятся как редактируемый DrawingML-текст, остаются без изменений.</p>
 
         <h3>Что если добавить или удалить слайды после извлечения?</h3>
-        <p>Ключи привязаны к номерам слайдов и порядку фигур. Если слайды добавлены, удалены или переставлены, ключи перестанут совпадать. Извлеките текст заново из обновлённого PPTX.</p>
+            <p>Основные ID не привязаны к номерам слайдов. Если слайды переставлены, инструмент сопоставляет текст по <code>shapeName</code>. Если слайды дублировались, PowerPoint может скопировать те же ID, поэтому перед извлечением или вставкой снова запустите Prepare PPTX IDs.</p>
 
         <h3>Можно ли использовать для частичного перевода?</h3>
         <p>Да. Заменяются только ячейки с непустыми значениями в выбранной языковой колонке. Отсутствующие переводы остаются как есть.</p>
