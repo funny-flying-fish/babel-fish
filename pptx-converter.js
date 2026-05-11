@@ -1231,6 +1231,9 @@
             return;
         }
 
+        if (!window.PptxStyleUtils || typeof window.PptxStyleUtils.extractStyleRowsFromPptx !== 'function') {
+            throw new Error('Style utilities are not loaded. Check that pptx-style-utils.js is included before pptx-converter.js.');
+        }
         const styleRows = await window.PptxStyleUtils.extractStyleRowsFromPptx(stylePptxBuffer.slice(0));
         styleState = buildStyleState(styleRows, styleTranslationData);
         renderStyleControls();
