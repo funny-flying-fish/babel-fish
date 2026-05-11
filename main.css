@@ -9,6 +9,10 @@ body {
     background: #000;
     color: #fff;
 }
+body:has(.pptx-layout) {
+    max-width: min(1800px, calc(100vw - 32px));
+    margin: 24px auto;
+}
 
 /* Tabs Navigation */
 .tabs-nav {
@@ -532,7 +536,8 @@ button:disabled {
 /* PPTX Converter */
 .pptx-layout {
     grid-template-columns: 1fr;
-    max-width: 680px;
+    width: 100%;
+    max-width: none;
     margin: 0 auto;
 }
 .page-header {
