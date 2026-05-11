@@ -57,152 +57,121 @@
         <h1>Babel Fish — PPTX Converter</h1>
 
         <div class="intro-box">
-            <h3>What does this tool do?</h3>
-            <p>Prepares PowerPoint (.pptx) files with stable translation IDs, extracts text into an XLSX translation template, and injects translations back — producing a localized presentation.</p>
+            <h3>Simple idea</h3>
+            <p>This tool helps translate a PowerPoint file without manually copying text back and forth.</p>
             <ul>
-                <li>Prepare PPTX IDs: add stable Selection Pane names to editable text containers</li>
-                <li>PPTX → XLSX: extract text by <code>shapeName + paragraphIndex</code></li>
-                <li>XLSX → PPTX: inject translated text back into the marked file</li>
-                <li>Preserves formatting (font, size, color, bold)</li>
-                <li>Reports missing, duplicated, or moved IDs during conversion</li>
+                <li>First, mark the PPTX so every text block has a stable ID.</li>
+                <li>Then export the text to a very simple XLSX file.</li>
+                <li>Add translation columns to the XLSX.</li>
+                <li>Load the marked PPTX and XLSX, adjust font sizes if needed, and download translated PPTX files.</li>
             </ul>
         </div>
 
         <div class="diagram">
             <p style="margin-bottom: 15px; color: #666;"><strong>Workflow:</strong></p>
             <div class="diagram-row">
-                <div class="diagram-file">Presentation.pptx</div>
+                <div class="diagram-file">Original.pptx</div>
                 <div class="diagram-arrow">→</div>
                 <div class="diagram-result">Marked.pptx</div>
                 <div class="diagram-arrow">→</div>
                 <div class="diagram-result">Translations.xlsx</div>
             </div>
-            <div style="margin: 15px 0; color: #666;">translate → then inject back</div>
+            <div style="margin: 15px 0; color: #666;">translate in XLSX → generate PPTX per language</div>
             <div class="diagram-row">
-                <div class="diagram-file">Translations.xlsx</div>
-                <div class="diagram-arrow">+</div>
                 <div class="diagram-file">Marked.pptx</div>
+                <div class="diagram-arrow">+</div>
+                <div class="diagram-file">Translations.xlsx</div>
                 <div class="diagram-arrow">→</div>
-                <div class="diagram-result">Translated.pptx</div>
+                <div class="diagram-result">PL.pptx / DE.pptx / ...</div>
             </div>
         </div>
 
-        <h2>Tab 1: Prepare PPTX IDs</h2>
-
-        <p>Run this first. The tool writes stable translation IDs into the PowerPoint Selection Pane names stored in <code>cNvPr name</code>. Existing IDs such as <code>tr_7f3a91_body</code> are kept; duplicates are repaired.</p>
+        <h2>1. Prepare PPTX IDs</h2>
+        <p>Do this before exporting text. The tool adds stable names to text blocks inside the PPTX. These names are used later to put translations back into the right places.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
-            <span class="step-title">Upload a .pptx file</span>
+            <span class="step-title">Upload the original PPTX</span>
             <div class="step-content">
-                <p>Drag and drop an original or already marked PowerPoint file into the Prepare tab.</p>
+                <p>Open the <strong>Prepare PPTX IDs</strong> tab, drop the presentation, and click <strong>Prepare PPTX IDs</strong>.</p>
             </div>
         </div>
 
         <div class="step-box">
             <span class="step-number">2</span>
-            <span class="step-title">Click "Prepare PPTX IDs"</span>
+            <span class="step-title">Use the marked PPTX from now on</span>
             <div class="step-content">
-                <p>The tool marks text containers with names like <code>tr_7f3a91_body</code>. Re-run this step after duplicating slides to normalize copied IDs.</p>
+                <p>Download the marked file. Use this marked file for export and final generation.</p>
             </div>
         </div>
 
-        <h2>Tab 2: PPTX → XLSX</h2>
-
-        <p>Extracts text from a marked PowerPoint presentation into a structured XLSX file ready for translation.</p>
+        <h2>2. Export PPTX to XLSX</h2>
+        <p>This creates a translation spreadsheet. The file is intentionally simple.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
-            <span class="step-title">Upload a .pptx file</span>
+            <span class="step-title">Upload the marked PPTX</span>
             <div class="step-content">
-                <p>Drag and drop a PowerPoint file into the dropzone, or click to browse.</p>
+                <p>Open <strong>PPTX → XLSX</strong>, upload the marked PPTX, choose the source language code, and click <strong>Extract text</strong>.</p>
+            </div>
+        </div>
+
+        <h3>XLSX format</h3>
+        <table>
+            <tr><th>key</th><th>EN</th><th>PL</th><th>DE</th></tr>
+            <tr><td><code>tr_7f3a91_body__p0</code></td><td>Original text</td><td>Polish text</td><td>German text</td></tr>
+        </table>
+
+        <p><strong>Do not edit the <code>key</code> column.</strong> It tells the tool where each line belongs. Add translation columns next to the source column, for example <code>PL</code>, <code>DE</code>, <code>FR</code>.</p>
+
+        <h2>3. Generate Translated PPTX Files</h2>
+        <p>Open <strong>Translations -> PPTX</strong>. Load the marked PPTX and the translated XLSX. The table appears only after both files are loaded.</p>
+
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Check font-size groups</span>
+            <div class="step-content">
+                <p>The table groups similar text styles. Each row has a number, language size fields, a usage count, and a style label.</p>
             </div>
         </div>
 
         <div class="step-box">
             <span class="step-number">2</span>
-            <span class="step-title">Set the source language</span>
+            <span class="step-title">Preview examples</span>
             <div class="step-content">
-                <p>Enter the language code of the original text (default: <code>EN</code>). This becomes the column header in the XLSX.</p>
+                <p>Hover a style label to see a quick preview. Click the label to add that style card to the panel on the right. Use <strong>×</strong> on a card to remove it.</p>
             </div>
         </div>
 
         <div class="step-box">
             <span class="step-number">3</span>
-            <span class="step-title">Click "Extract text"</span>
+            <span class="step-title">Adjust sizes if needed</span>
             <div class="step-content">
-                <p>The tool parses every slide, extracts text from shapes, graphic frames, tables stored as editable DrawingML text, and PowerPoint paragraphs, then generates an XLSX file.</p>
+                <p>You can edit individual size cells. You can also use the multiplier at the top of each language column to shrink all sizes for that language.</p>
             </div>
         </div>
 
         <div class="step-box">
             <span class="step-number">4</span>
-            <span class="step-title">Download the XLSX and add translations</span>
+            <span class="step-title">Save presets and download PPTX</span>
             <div class="step-content">
-                <p>Open the downloaded file and add new columns for each target language (e.g. <code>ES</code>, <code>FR</code>, <code>DE</code>).</p>
+                <p><strong>Save preset</strong> downloads a JSON with all size settings. <strong>Load preset</strong> applies it later. At the bottom of the table, use buttons like <strong>↓ PL</strong> to download a PPTX for that language.</p>
             </div>
         </div>
-
-        <h3>XLSX structure</h3>
-        <table>
-            <tr><th>key</th><th>slideNumber</th><th>shapeName</th><th>shapeId</th><th>containerType</th><th>paragraphIndex</th><th>EN</th><th>ES</th></tr>
-            <tr><td><code>tr_7f3a91_body__p0</code></td><td>2</td><td><code>tr_7f3a91_body</code></td><td>39</td><td>shape</td><td>0</td><td>Original text</td><td>Texto traducido</td></tr>
-        </table>
-
-        <p>The real match is <code>shapeName + paragraphIndex</code>. <code>slideNumber</code> is informational: if a text box moves to another slide, the tool still replaces it by <code>shapeName</code> and shows a warning.</p>
-
-        <h2>Tab 3: XLSX → PPTX</h2>
-
-        <p>Takes a translated XLSX and the marked PPTX, and produces a new presentation with the translated text.</p>
-
-        <div class="step-box">
-            <span class="step-number">1</span>
-            <span class="step-title">Upload the translated XLSX</span>
-            <div class="step-content">
-                <p>Drop the XLSX file with translations into the left dropzone. The language dropdown will populate automatically from the header row.</p>
-            </div>
-        </div>
-
-        <div class="step-box">
-            <span class="step-number">2</span>
-            <span class="step-title">Upload the original PPTX</span>
-            <div class="step-content">
-                <p>Drop the marked .pptx file into the right dropzone. This serves as the template.</p>
-            </div>
-        </div>
-
-        <div class="step-box">
-            <span class="step-number">3</span>
-            <span class="step-title">Select a language and convert</span>
-            <div class="step-content">
-                <p>Pick the target language from the dropdown and click <strong>Convert</strong>. The tool replaces text in every matched position and generates a new .pptx file.</p>
-            </div>
-        </div>
-
-        <div class="tip-box">
-            <strong>Tip:</strong> You can switch to a different language in the dropdown and click Convert again — no need to re-upload the files.
-        </div>
-
-        <h2>How formatting is preserved</h2>
-        <p>The translated text is placed into the first text run of each paragraph. The formatting properties (font, size, color, bold, italic) of that first run are preserved. If the original paragraph had multiple runs with different formatting, only the first run's style is kept — subsequent runs are emptied.</p>
 
         <div class="warning-box">
-            <strong>Important:</strong> Do not change <code>shapeName</code> or <code>paragraphIndex</code> in the XLSX. If an ID cannot be matched, the tool skips that row and shows a warning report.
+            <strong>Important:</strong> If you duplicate slides or heavily edit text blocks in PowerPoint, run <strong>Prepare PPTX IDs</strong> again before exporting a new XLSX.
         </div>
 
-        <h2>FAQ</h2>
+        <h2>Quick FAQ</h2>
+        <h3>Can I translate only one language?</h3>
+        <p>Yes. Add only the column you need, for example <code>PL</code>, then download <strong>↓ PL</strong>.</p>
 
-        <h3>Does it handle images, charts, or tables?</h3>
-            <p>It handles editable text inside shapes (<code>p:sp</code>) and graphic frames (<code>p:graphicFrame</code>), including many tables. Images and chart labels that are not stored as editable DrawingML text are left unchanged.</p>
+        <h3>Can I leave some cells empty?</h3>
+        <p>Yes. Empty translation cells are skipped.</p>
 
-        <h3>What if I add or remove slides after extraction?</h3>
-            <p>The main IDs are not tied to slide numbers. If slides are reordered, the tool matches by <code>shapeName</code>. If slides are duplicated, PowerPoint may copy the same IDs, so run Prepare PPTX IDs again before extracting or injecting.</p>
-
-        <h3>Can I use this for partial translations?</h3>
-        <p>Yes. Only cells with non-empty values in the selected language column will be replaced. Missing translations are left as-is.</p>
-
-        <h3>How large can the PPTX be?</h3>
-        <p>The tool runs entirely in the browser. Files up to ~100 MB work fine in modern browsers. Very large files may take a few seconds to process.</p>
+        <h3>What should I never change?</h3>
+        <p>Do not change <code>key</code>. You can edit language text and add new language columns.</p>
     </div>
 
     <!-- RUSSIAN VERSION -->
@@ -210,152 +179,121 @@
         <h1>Babel Fish — PPTX Конвертер</h1>
 
         <div class="intro-box">
-            <h3>Что делает этот инструмент?</h3>
-            <p>Размечает PowerPoint (.pptx) стабильными ID для перевода, извлекает текст в XLSX-шаблон и вставляет переводы обратно — создавая локализованную презентацию.</p>
+            <h3>Простая идея</h3>
+            <p>Инструмент помогает перевести PowerPoint без ручного копирования текста туда-сюда.</p>
             <ul>
-                <li>Prepare PPTX IDs: добавление стабильных имён в Selection Pane для редактируемых текстовых контейнеров</li>
-                <li>PPTX → XLSX: извлечение текста по <code>shapeName + paragraphIndex</code></li>
-                <li>XLSX → PPTX: вставка переведённого текста обратно в размеченный файл</li>
-                <li>Сохранение форматирования (шрифт, размер, цвет, жирность)</li>
-                <li>Отчёты о пропавших, дублированных или перемещённых ID</li>
+                <li>Сначала размечаем PPTX, чтобы у каждого текстового блока был стабильный ID.</li>
+                <li>Потом выгружаем текст в простой XLSX.</li>
+                <li>В XLSX добавляем колонки с переводами.</li>
+                <li>Загружаем размеченный PPTX и XLSX, при необходимости правим размеры шрифта и скачиваем готовые PPTX по языкам.</li>
             </ul>
         </div>
 
         <div class="diagram">
             <p style="margin-bottom: 15px; color: #666;"><strong>Процесс:</strong></p>
             <div class="diagram-row">
-                <div class="diagram-file">Презентация.pptx</div>
+                <div class="diagram-file">Original.pptx</div>
                 <div class="diagram-arrow">→</div>
                 <div class="diagram-result">Marked.pptx</div>
                 <div class="diagram-arrow">→</div>
-                <div class="diagram-result">Переводы.xlsx</div>
+                <div class="diagram-result">Translations.xlsx</div>
             </div>
-            <div style="margin: 15px 0; color: #666;">перевести → затем вставить обратно</div>
+            <div style="margin: 15px 0; color: #666;">переводим в XLSX → собираем PPTX по языкам</div>
             <div class="diagram-row">
-                <div class="diagram-file">Переводы.xlsx</div>
-                <div class="diagram-arrow">+</div>
                 <div class="diagram-file">Marked.pptx</div>
+                <div class="diagram-arrow">+</div>
+                <div class="diagram-file">Translations.xlsx</div>
                 <div class="diagram-arrow">→</div>
-                <div class="diagram-result">Переведённая.pptx</div>
+                <div class="diagram-result">PL.pptx / DE.pptx / ...</div>
             </div>
         </div>
 
-        <h2>Вкладка 1: Prepare PPTX IDs</h2>
-
-        <p>Сначала запустите этот шаг. Инструмент записывает стабильные ID перевода в имена объектов PowerPoint из Selection Pane, которые хранятся в <code>cNvPr name</code>. Уже существующие ID вроде <code>tr_7f3a91_body</code> сохраняются, дубли исправляются.</p>
+        <h2>1. Prepare PPTX IDs</h2>
+        <p>Этот шаг нужно сделать перед выгрузкой текста. Он добавляет стабильные имена текстовым блокам внутри PPTX. Потом по этим именам перевод встанет обратно в правильные места.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
-            <span class="step-title">Загрузите .pptx файл</span>
+            <span class="step-title">Загрузите исходный PPTX</span>
             <div class="step-content">
-                <p>Перетащите исходный или уже размеченный PowerPoint-файл во вкладку Prepare.</p>
+                <p>Откройте вкладку <strong>Prepare PPTX IDs</strong>, загрузите презентацию и нажмите <strong>Prepare PPTX IDs</strong>.</p>
             </div>
         </div>
 
         <div class="step-box">
             <span class="step-number">2</span>
-            <span class="step-title">Нажмите «Prepare PPTX IDs»</span>
+            <span class="step-title">Дальше используйте размеченный PPTX</span>
             <div class="step-content">
-                <p>Инструмент разметит текстовые контейнеры именами вроде <code>tr_7f3a91_body</code>. После дублирования слайдов запустите этот шаг снова, чтобы исправить скопированные ID.</p>
+                <p>Скачайте файл с разметкой. Именно его используйте для выгрузки XLSX и для финальной сборки переводов.</p>
             </div>
         </div>
 
-        <h2>Вкладка 2: PPTX → XLSX</h2>
-
-        <p>Извлекает текст из размеченной PowerPoint-презентации в структурированный XLSX-файл, готовый для перевода.</p>
+        <h2>2. PPTX → XLSX</h2>
+        <p>На этом шаге получается таблица для перевода. Она специально сделана максимально простой.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
-            <span class="step-title">Загрузите .pptx файл</span>
+            <span class="step-title">Загрузите размеченный PPTX</span>
             <div class="step-content">
-                <p>Перетащите файл PowerPoint в зону загрузки или нажмите для выбора.</p>
+                <p>Откройте <strong>PPTX → XLSX</strong>, загрузите размеченный PPTX, укажите код исходного языка и нажмите <strong>Extract text</strong>.</p>
+            </div>
+        </div>
+
+        <h3>Формат XLSX</h3>
+        <table>
+            <tr><th>key</th><th>EN</th><th>PL</th><th>DE</th></tr>
+            <tr><td><code>tr_7f3a91_body__p0</code></td><td>Original text</td><td>Polski tekst</td><td>Deutscher Text</td></tr>
+        </table>
+
+        <p><strong>Колонку <code>key</code> не меняем.</strong> Она говорит инструменту, куда вернуть каждую строку. Рядом можно добавлять языковые колонки: <code>PL</code>, <code>DE</code>, <code>FR</code> и так далее.</p>
+
+        <h2>3. Translations -> PPTX</h2>
+        <p>Откройте <strong>Translations -> PPTX</strong>. Загрузите размеченный PPTX и XLSX с переводами. Таблица появится только после загрузки обоих файлов.</p>
+
+        <div class="step-box">
+            <span class="step-number">1</span>
+            <span class="step-title">Посмотрите группы размеров</span>
+            <div class="step-content">
+                <p>Таблица группирует похожие текстовые стили. У каждой строки есть номер, поля размеров по языкам, количество использований и название стиля.</p>
             </div>
         </div>
 
         <div class="step-box">
             <span class="step-number">2</span>
-            <span class="step-title">Укажите язык оригинала</span>
+            <span class="step-title">Проверяйте примеры</span>
             <div class="step-content">
-                <p>Введите код языка исходного текста (по умолчанию: <code>EN</code>). Он станет заголовком колонки в XLSX.</p>
+                <p>Наведите курсор на название стиля, чтобы быстро увидеть примеры. Нажмите на название, чтобы добавить карточку этого стиля в правую панель. Кнопка <strong>×</strong> удаляет карточку из панели.</p>
             </div>
         </div>
 
         <div class="step-box">
             <span class="step-number">3</span>
-            <span class="step-title">Нажмите «Extract text»</span>
+            <span class="step-title">Подправьте размеры, если нужно</span>
             <div class="step-content">
-                <p>Инструмент разберёт каждый слайд, извлечёт текст из фигур, graphic frame, таблиц, сохранённых как редактируемый DrawingML-текст, и абзацев PowerPoint, затем сгенерирует XLSX-файл.</p>
+                <p>Можно менять отдельные ячейки с размером. Можно использовать multiplier сверху языковой колонки, чтобы уменьшить все размеры для выбранного языка сразу.</p>
             </div>
         </div>
 
         <div class="step-box">
             <span class="step-number">4</span>
-            <span class="step-title">Скачайте XLSX и добавьте переводы</span>
+            <span class="step-title">Сохраните пресет и скачайте PPTX</span>
             <div class="step-content">
-                <p>Откройте скачанный файл и добавьте новые колонки для каждого целевого языка (например, <code>ES</code>, <code>FR</code>, <code>DE</code>).</p>
+                <p><strong>Save preset</strong> скачивает JSON со всеми настройками размеров. <strong>Load preset</strong> загружает его обратно. Внизу таблицы есть кнопки вроде <strong>↓ PL</strong> — они скачивают PPTX для конкретного языка.</p>
             </div>
         </div>
-
-        <h3>Структура XLSX</h3>
-        <table>
-            <tr><th>key</th><th>slideNumber</th><th>shapeName</th><th>shapeId</th><th>containerType</th><th>paragraphIndex</th><th>EN</th><th>ES</th></tr>
-            <tr><td><code>tr_7f3a91_body__p0</code></td><td>2</td><td><code>tr_7f3a91_body</code></td><td>39</td><td>shape</td><td>0</td><td>Original text</td><td>Texto traducido</td></tr>
-        </table>
-
-        <p>Основное сопоставление идёт по <code>shapeName + paragraphIndex</code>. <code>slideNumber</code> справочный: если текстовое поле переехало на другой слайд, инструмент всё равно заменит его по <code>shapeName</code> и покажет предупреждение.</p>
-
-        <h2>Вкладка 3: XLSX → PPTX</h2>
-
-        <p>Берёт переведённый XLSX и размеченный PPTX и создаёт новую презентацию с переведённым текстом.</p>
-
-        <div class="step-box">
-            <span class="step-number">1</span>
-            <span class="step-title">Загрузите переведённый XLSX</span>
-            <div class="step-content">
-                <p>Перетащите XLSX-файл с переводами в левую зону загрузки. Выпадающий список языков заполнится автоматически из строки заголовка.</p>
-            </div>
-        </div>
-
-        <div class="step-box">
-            <span class="step-number">2</span>
-            <span class="step-title">Загрузите оригинальный PPTX</span>
-            <div class="step-content">
-                <p>Перетащите размеченный .pptx файл в правую зону загрузки. Он служит шаблоном.</p>
-            </div>
-        </div>
-
-        <div class="step-box">
-            <span class="step-number">3</span>
-            <span class="step-title">Выберите язык и конвертируйте</span>
-            <div class="step-content">
-                <p>Выберите целевой язык из выпадающего списка и нажмите <strong>Convert</strong>. Инструмент заменит текст в каждой совпавшей позиции и сгенерирует новый .pptx файл.</p>
-            </div>
-        </div>
-
-        <div class="tip-box">
-            <strong>Совет:</strong> Можно выбрать другой язык в выпадающем списке и нажать Convert снова — файлы загружать заново не нужно.
-        </div>
-
-        <h2>Как сохраняется форматирование</h2>
-        <p>Переведённый текст помещается в первый текстовый фрагмент (run) каждого абзаца. Свойства форматирования (шрифт, размер, цвет, жирность, курсив) этого фрагмента сохраняются. Если в оригинальном абзаце было несколько фрагментов с разным форматированием, сохраняется стиль только первого — остальные очищаются.</p>
 
         <div class="warning-box">
-            <strong>Важно:</strong> Не изменяйте <code>shapeName</code> и <code>paragraphIndex</code> в XLSX. Если ID не найден, инструмент пропустит эту строку и покажет отчёт предупреждений.
+            <strong>Важно:</strong> если вы дублировали слайды или сильно меняли текстовые блоки в PowerPoint, перед новой выгрузкой XLSX снова запустите <strong>Prepare PPTX IDs</strong>.
         </div>
 
-        <h2>FAQ</h2>
+        <h2>Короткий FAQ</h2>
+        <h3>Можно сделать только один язык?</h3>
+        <p>Да. Добавьте только нужную колонку, например <code>PL</code>, и скачайте <strong>↓ PL</strong>.</p>
 
-        <h3>Работает ли с изображениями, диаграммами и таблицами?</h3>
-            <p>Инструмент работает с редактируемым текстом внутри фигур (<code>p:sp</code>) и graphic frame (<code>p:graphicFrame</code>), включая многие таблицы. Изображения и подписи диаграмм, которые не хранятся как редактируемый DrawingML-текст, остаются без изменений.</p>
+        <h3>Можно оставлять ячейки перевода пустыми?</h3>
+        <p>Да. Пустые ячейки пропускаются.</p>
 
-        <h3>Что если добавить или удалить слайды после извлечения?</h3>
-            <p>Основные ID не привязаны к номерам слайдов. Если слайды переставлены, инструмент сопоставляет текст по <code>shapeName</code>. Если слайды дублировались, PowerPoint может скопировать те же ID, поэтому перед извлечением или вставкой снова запустите Prepare PPTX IDs.</p>
-
-        <h3>Можно ли использовать для частичного перевода?</h3>
-        <p>Да. Заменяются только ячейки с непустыми значениями в выбранной языковой колонке. Отсутствующие переводы остаются как есть.</p>
-
-        <h3>Какой максимальный размер PPTX?</h3>
-        <p>Инструмент работает полностью в браузере. Файлы до ~100 МБ обрабатываются нормально в современных браузерах. Очень большие файлы могут обрабатываться несколько секунд.</p>
+        <h3>Что точно нельзя менять?</h3>
+        <p>Не меняйте <code>key</code>. Текст в языковых колонках менять можно, новые языковые колонки добавлять можно.</p>
     </div>
 
     <div class="footer">
