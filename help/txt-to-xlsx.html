@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel Fish - TXT to XLSX Help</title>
+    <link rel="icon" href="../favicon/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="../favicon/favicon.png" type="image/png">
+    <link rel="stylesheet" href="help.css">
+</head>
+<body>
+    <div class="lang-switch">
+        <button type="button" class="lang-btn active" data-lang="en">English</button>
+        <button type="button" class="lang-btn" data-lang="ru">Russian</button>
+    </div>
+
+    <main class="lang-en">
+
+        <h1>TXT → XLSX</h1>
+        <div class="intro-box"><h3>What this tab does</h3><p>Converts tab-separated TXT files back into XLSX format for review, translation updates, or handoff after InDesign-side edits.</p><ul><li>Supports batch conversion of multiple TXT files.</li><li>Auto-detects Unicode, UTF-8, and Mac Roman input.</li><li>Removes the generated Date column when present.</li><li>Can check duplicate language keys during first TXT → XLSX conversion.</li></ul></div>
+        <h2>Input Format</h2><p>The input should be the TXT format produced by the XLSX → TXT tab: tab-separated rows where the first column identifies the language or code, and the optional second column is the generated Date column.</p>
+        <h2>How to Use</h2><div class="step-box"><span class="step-number">1</span><span class="step-title">Upload TXT files</span><div class="step-content"><p>Drop one or many <code>.txt</code> files into the upload zone or click it to browse.</p></div></div><div class="step-box"><span class="step-number">2</span><span class="step-title">Choose duplicate check if needed</span><div class="step-content"><p>Enable <strong>Check for duplicated language keys</strong> when this is the first conversion from a manually edited TXT.</p></div></div><div class="step-box"><span class="step-number">3</span><span class="step-title">Convert</span><div class="step-content"><p>Click <strong>Convert</strong>. The tool creates one XLSX download per TXT file.</p></div></div>
+        <h2>Cleanup Rules</h2><ul><li>The generated <code>Date</code> column is removed when detected.</li><li>Existing language codes are preserved as-is.</li><li>Optional typography rules can normalize numbers, units, quotes, and NBSP rules.</li><li>If duplicate language keys are found, duplicates are renamed and warnings are shown.</li></ul>
+        <div class="warning-box"><strong>Important:</strong> If the TXT structure was heavily changed manually, review the generated XLSX before sending it further.</div>
+
+    </main>
+
+    <main class="lang-ru">
+
+        <h1>TXT → XLSX</h1>
+        <div class="intro-box"><h3>Что делает вкладка</h3><p>Конвертирует TXT с табуляцией обратно в XLSX для проверки, обновления переводов или передачи после правок на стороне InDesign.</p><ul><li>Поддерживает пакетную конвертацию нескольких TXT.</li><li>Автоматически определяет Unicode, UTF-8 и Mac Roman.</li><li>Удаляет сгенерированную колонку Date, если она есть.</li><li>Может проверять дубли language keys при первой конвертации TXT → XLSX.</li></ul></div>
+        <h2>Формат входного файла</h2><p>Ожидается TXT, полученный на вкладке XLSX → TXT: строки разделены табуляцией, первая колонка содержит язык или код, а вторая может быть сгенерированной колонкой Date.</p>
+        <h2>Как пользоваться</h2><div class="step-box"><span class="step-number">1</span><span class="step-title">Загрузите TXT</span><div class="step-content"><p>Перетащите один или несколько <code>.txt</code> файлов в upload-зону или нажмите на неё для выбора.</p></div></div><div class="step-box"><span class="step-number">2</span><span class="step-title">Включите проверку дублей при необходимости</span><div class="step-content"><p>Опцию <strong>Check for duplicated language keys</strong> стоит включать при первой конвертации из вручную правленного TXT.</p></div></div><div class="step-box"><span class="step-number">3</span><span class="step-title">Сконвертируйте</span><div class="step-content"><p>Нажмите <strong>Convert</strong>. Для каждого TXT будет создана отдельная ссылка на XLSX.</p></div></div>
+        <h2>Правила очистки</h2><ul><li>Сгенерированная колонка <code>Date</code> удаляется, если найдена.</li><li>Коды языков сохраняются как есть.</li><li>Опциональные типографские правила могут нормализовать числа, единицы, кавычки и NBSP.</li><li>Если найдены дубли language keys, они переименовываются и появляются предупреждения.</li></ul>
+        <div class="warning-box"><strong>Важно:</strong> Если структура TXT сильно менялась вручную, проверьте результат XLSX перед дальнейшей отправкой.</div>
+
+    </main>
+
+    <div class="footer">Babel Fish - TXT to XLSX</div>
+    <script src="help.js"></script>
+</body>
+</html>

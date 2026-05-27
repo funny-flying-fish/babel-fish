@@ -12,21 +12,29 @@
     <link rel="stylesheet" href="main.css">
 </head>
 
-<body>
-    <div class="layout">
-        <div class="main-column">
-            <!-- Tabs Navigation -->
-            <nav class="tabs-nav">
-                <button class="tab-btn active" data-tab="xlsx-to-txt">XLSX → TXT</button>
-                <button class="tab-btn" data-tab="txt-to-xlsx">TXT → XLSX</button>
-                <button class="tab-btn" data-tab="xlsx-to-lokalise">XLSX → Lokalise</button>
-                <button class="tab-btn" data-tab="find-diff">Find difference</button>
-            </nav>
+<body class="app-shell">
+    <header class="app-chrome">
+        <nav class="section-nav" aria-label="Product area">
+            <button type="button" class="section-nav-btn active" data-section="print">Print materials</button>
+            <a href="pptx-convert.html" class="section-nav-btn" data-section="presentations">Presentations</a>
+            <a href="utilities.html" class="section-nav-btn" data-section="utilities">Utilities</a>
+        </nav>
 
+        <nav class="tabs-nav" aria-label="Tools">
+            <button class="tab-btn active" data-tab="xlsx-to-txt" data-section="print">XLSX → TXT</button>
+            <button class="tab-btn" data-tab="txt-to-xlsx" data-section="print">TXT → XLSX</button>
+        </nav>
+    </header>
+
+    <div class="layout app-layout">
+        <div class="main-column">
             <!-- Tab 1: XLSX → TXT -->
             <div class="tab-content active" id="tab-xlsx-to-txt">
                 <div class="section">
-                    <h2>XLSX → TXT</h2>
+                    <div class="section-heading">
+                        <h2>XLSX → TXT</h2>
+                        <a href="help/xlsx-to-txt.html" class="help-button" target="_blank" rel="noopener">Help</a>
+                    </div>
                     <div class="dropzone" id="xlsxDropzone">
                         <input type="file" id="xlsxInput" accept=".xlsx" multiple hidden>
                         <div class="dropzone-icon">📄</div>
@@ -69,7 +77,10 @@
             <!-- Tab 2: TXT → XLSX -->
             <div class="tab-content" id="tab-txt-to-xlsx">
                 <div class="section">
-                    <h2>TXT → XLSX</h2>
+                    <div class="section-heading">
+                        <h2>TXT → XLSX</h2>
+                        <a href="help/txt-to-xlsx.html" class="help-button" target="_blank" rel="noopener">Help</a>
+                    </div>
                     <div class="dropzone" id="txtDropzone">
                         <input type="file" id="txtInput" accept=".txt" multiple hidden>
                         <div class="dropzone-icon">📄</div>
@@ -98,92 +109,6 @@
                 <p class="note">Encoding is auto-detected: Unicode (UTF-16), UTF-8, or Mac Roman.</p>
             </div>
 
-            <!-- Tab 3: XLSX → Lokalise -->
-            <div class="tab-content" id="tab-xlsx-to-lokalise">
-                <div class="section">
-                    <h2>Lokalise Export</h2>
-                    <p class="note" style="text-align: left; margin: 0 0 16px;">
-                        Upload an XLSX file with keys and source text (EN), then sync with a Lokalise project.
-                    </p>
-
-                    <div class="form-row">
-                        <label for="apiToken">API Token:</label>
-                        <input type="password" id="apiToken" class="token-input" placeholder="Enter Lokalise API token">
-                        <button id="loadProjectsBtn" class="btn-secondary">Load Projects</button>
-                    </div>
-                    <p class="token-hint"><a href="https://app.lokalise.com/profile/#apitokens" target="_blank"
-                            rel="noopener">Where can I get it?</a></p>
-
-                    <div class="form-row">
-                        <label for="projectSelect">Project:</label>
-                        <select id="projectSelect" class="project-select" disabled>
-                            <option value="">— Select project —</option>
-                        </select>
-                    </div>
-
-                    <div class="form-row">
-                        <input type="file" id="lokaliseXlsxInput" accept=".xlsx">
-                    </div>
-
-                    <div class="ops-checkboxes">
-                        <label><input type="checkbox" id="opCreate" checked> Create new keys</label>
-                        <label><input type="checkbox" id="opUpdate" checked> Update source (EN)</label>
-                        <label><input type="checkbox" id="opDelete"> Delete missing keys</label>
-                    </div>
-
-                    <div class="btn-row">
-                        <button id="previewBtn" disabled>Preview Diff</button>
-                        <button id="runExportBtn" disabled>Run Export</button>
-                        <a href="#" id="downloadPdfLink" class="pdf-link" style="display: none;">Download PDF Report</a>
-                    </div>
-
-                    <div id="statusLine" class="status-line"></div>
-
-                    <div id="previewSection" class="preview-section" style="display: none;">
-                        <h4>Preview</h4>
-                        <div id="previewContent"></div>
-                    </div>
-                </div>
-
-                <ul class="note-list">
-                    <li>XLSX format: Column A = key name, Column B = source text (EN).</li>
-                    <li>First row should be headers (will be skipped).</li>
-                    <li>API token is not saved anywhere.</li>
-                    <li>Rate limit: max 6 requests/second.</li>
-                </ul>
-            </div>
-
-            <!-- Tab 4: Find difference -->
-            <div class="tab-content" id="tab-find-diff">
-                <div class="section">
-                    <h2>Find difference</h2>
-                    <p class="note" style="text-align: left; margin: 0 0 16px;">
-                        Compare two XLSX files by keys (column 1) and English texts (column 2). Differences will appear in the log.
-                    </p>
-
-                    <div class="form-row">
-                        <label for="diffFileA" class="diff-file-label">File A:</label>
-                        <input type="file" id="diffFileA" accept=".xlsx">
-                    </div>
-                    <div class="form-row">
-                        <label for="diffFileB" class="diff-file-label">File B:</label>
-                        <input type="file" id="diffFileB" accept=".xlsx">
-                    </div>
-
-                    <div class="btn-row">
-                        <button id="diffCompareBtn" disabled>Compare</button>
-                    </div>
-                    <div class="error" id="diffError"></div>
-                </div>
-
-                <ul class="note-list">
-                    <li>Both files must be XLSX.</li>
-                    <li>Column 1 (A) = key name, Column 2 (B) = English source text.</li>
-                    <li>First row is treated as a header and skipped.</li>
-                    <li>The comparison checks: missing keys, extra keys, and text differences.</li>
-                </ul>
-            </div>
-
             <div class="modal-overlay" id="rulesModal" aria-hidden="true">
                 <div class="modal" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
                     <div class="modal-header">
@@ -194,21 +119,20 @@
                 </div>
             </div>
         </div>
-
-        <aside class="log-panel">
-            <div class="section">
-                <div class="log-header">
-                    <h2 id="logTitle">Conversion log</h2>
-                    <span class="log-count" id="logCount">0 changes</span>
-                </div>
-                <p class="log-empty" id="logEmpty">No changes yet.</p>
-                <ol class="log-list" id="logList"></ol>
-            </div>
-        </aside>
     </div>
 
+    <aside class="log-panel log-panel--below">
+        <div class="section">
+            <div class="log-header">
+                <h2 id="logTitle">Conversion log</h2>
+                <span class="log-count" id="logCount">0 changes</span>
+            </div>
+            <p class="log-empty" id="logEmpty">No changes yet.</p>
+            <ol class="log-list" id="logList"></ol>
+        </div>
+    </aside>
+
     <footer class="app-footer">
-        <a href="pptx-convert.html" style="color: #4da6ff; text-decoration: none; font-size: 0.85rem; margin-right: 16px;">PPTX Converter →</a>
         <button type="button" class="link-button" id="openChangelog">Last update: 09-04-2026</button>
     </footer>
 
@@ -238,56 +162,15 @@
     </div>
 
     <script src="converter.js"></script>
-    <script src="exporter.js"></script>
+    <script src="app-nav.js"></script>
     <script>
-        // Tabs functionality
-        const tabTitles = {
-            'xlsx-to-txt': 'XLSX → TXT log',
-            'txt-to-xlsx': 'TXT → XLSX log',
-            'xlsx-to-lokalise': 'Lokalise export log',
-            'find-diff': 'Difference log'
-        };
-
-        function activateTab(tabName) {
-            const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
-            if (!btn) return;
-
-            // Remove active from all buttons and contents
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-            // Add active to clicked button and corresponding content
-            btn.classList.add('active');
-            const tabId = 'tab-' + tabName;
-            document.getElementById(tabId).classList.add('active');
-
-            // Update log title based on active tab
-            const logTitle = document.getElementById('logTitle');
-            if (logTitle && tabTitles[tabName]) {
-                logTitle.textContent = tabTitles[tabName];
-            }
-        }
-
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tabName = btn.dataset.tab;
-                activateTab(tabName);
-                // Update URL hash without scrolling
-                history.replaceState(null, '', '#' + tabName);
-            });
-        });
-
-        // Activate tab from URL hash on page load
-        const hash = window.location.hash.slice(1);
-        if (hash && document.querySelector(`.tab-btn[data-tab="${hash}"]`)) {
-            activateTab(hash);
-        }
-
-        // Handle browser back/forward navigation
-        window.addEventListener('hashchange', () => {
-            const newHash = window.location.hash.slice(1);
-            if (newHash && document.querySelector(`.tab-btn[data-tab="${newHash}"]`)) {
-                activateTab(newHash);
+        initBabelFishNav({
+            defaultSection: 'print',
+            defaultTab: 'xlsx-to-txt',
+            pageSection: 'print',
+            tabTitles: {
+                'xlsx-to-txt': 'XLSX → TXT log',
+                'txt-to-xlsx': 'TXT → XLSX log'
             }
         });
     </script>

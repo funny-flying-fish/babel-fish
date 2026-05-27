@@ -473,19 +473,23 @@ function syncNbspSettingsTxt() {
     };
 }
 
-ruleNumeric.addEventListener('change', syncNbspSettings);
-ruleUnitSpacing.addEventListener('change', syncNbspSettings);
-ruleUnitCase.addEventListener('change', syncNbspSettings);
-ruleStripQuotes.addEventListener('change', syncNbspSettings);
-ruleGlobal.addEventListener('change', syncNbspSettings);
-ruleLanguage.addEventListener('change', syncNbspSettings);
+if (ruleNumeric) {
+    ruleNumeric.addEventListener('change', syncNbspSettings);
+    ruleUnitSpacing.addEventListener('change', syncNbspSettings);
+    ruleUnitCase.addEventListener('change', syncNbspSettings);
+    ruleStripQuotes.addEventListener('change', syncNbspSettings);
+    ruleGlobal.addEventListener('change', syncNbspSettings);
+    ruleLanguage.addEventListener('change', syncNbspSettings);
+}
 
-ruleNumericTxt.addEventListener('change', syncNbspSettingsTxt);
-ruleUnitSpacingTxt.addEventListener('change', syncNbspSettingsTxt);
-ruleUnitCaseTxt.addEventListener('change', syncNbspSettingsTxt);
-ruleStripQuotesTxt.addEventListener('change', syncNbspSettingsTxt);
-ruleGlobalTxt.addEventListener('change', syncNbspSettingsTxt);
-ruleLanguageTxt.addEventListener('change', syncNbspSettingsTxt);
+if (ruleNumericTxt) {
+    ruleNumericTxt.addEventListener('change', syncNbspSettingsTxt);
+    ruleUnitSpacingTxt.addEventListener('change', syncNbspSettingsTxt);
+    ruleUnitCaseTxt.addEventListener('change', syncNbspSettingsTxt);
+    ruleStripQuotesTxt.addEventListener('change', syncNbspSettingsTxt);
+    ruleGlobalTxt.addEventListener('change', syncNbspSettingsTxt);
+    ruleLanguageTxt.addEventListener('change', syncNbspSettingsTxt);
+}
 
 async function openRulesModal() {
     rulesModal.classList.add('is-open');
@@ -505,35 +509,44 @@ function closeRulesModal() {
     rulesModal.setAttribute('aria-hidden', 'true');
 }
 
-openRules.addEventListener('click', openRulesModal);
-closeRules.addEventListener('click', closeRulesModal);
-rulesModal.addEventListener('click', (e) => {
-    if (e.target === rulesModal) closeRulesModal();
-});
+if (openRules && rulesModal && closeRules) {
+    openRules.addEventListener('click', openRulesModal);
+    closeRules.addEventListener('click', closeRulesModal);
+    rulesModal.addEventListener('click', (e) => {
+        if (e.target === rulesModal) closeRulesModal();
+    });
+}
 
 const changelogModal = document.getElementById('changelogModal');
 const openChangelog = document.getElementById('openChangelog');
 const closeChangelog = document.getElementById('closeChangelog');
 
-function openChangelogModal() {
-    changelogModal.classList.add('is-open');
-    changelogModal.setAttribute('aria-hidden', 'false');
-}
-function closeChangelogModal() {
-    changelogModal.classList.remove('is-open');
-    changelogModal.setAttribute('aria-hidden', 'true');
-}
+if (changelogModal && openChangelog && closeChangelog) {
+    function openChangelogModal() {
+        changelogModal.classList.add('is-open');
+        changelogModal.setAttribute('aria-hidden', 'false');
+    }
+    function closeChangelogModal() {
+        changelogModal.classList.remove('is-open');
+        changelogModal.setAttribute('aria-hidden', 'true');
+    }
 
-openChangelog.addEventListener('click', openChangelogModal);
-closeChangelog.addEventListener('click', closeChangelogModal);
-changelogModal.addEventListener('click', (e) => {
-    if (e.target === changelogModal) closeChangelogModal();
-});
+    openChangelog.addEventListener('click', openChangelogModal);
+    closeChangelog.addEventListener('click', closeChangelogModal);
+    changelogModal.addEventListener('click', (e) => {
+        if (e.target === changelogModal) closeChangelogModal();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && changelogModal.classList.contains('is-open')) {
+            closeChangelogModal();
+        }
+    });
+}
 
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-        if (rulesModal.classList.contains('is-open')) closeRulesModal();
-        if (changelogModal.classList.contains('is-open')) closeChangelogModal();
+    if (e.key === 'Escape' && rulesModal && rulesModal.classList.contains('is-open')) {
+        closeRulesModal();
     }
 });
 
@@ -781,20 +794,23 @@ function setupDropzone(dropzone, input, getFiles, setFiles, listEl, btn, downloa
     });
 }
 
-setupDropzone(
-    xlsxDropzone, xlsxInput,
-    () => xlsxFiles, (f) => { xlsxFiles = f; },
-    xlsxFileList, xlsxToTxtBtn, txtDownload, xlsxError, '.xlsx'
-);
+if (xlsxDropzone && xlsxInput && xlsxFileList && xlsxToTxtBtn) {
+    setupDropzone(
+        xlsxDropzone, xlsxInput,
+        () => xlsxFiles, (f) => { xlsxFiles = f; },
+        xlsxFileList, xlsxToTxtBtn, txtDownload, xlsxError, '.xlsx'
+    );
+    xlsxToTxtBtn.addEventListener('click', convertXlsxToTxt);
+}
 
-setupDropzone(
-    txtDropzone, txtInput,
-    () => txtFiles, (f) => { txtFiles = f; },
-    txtFileList, txtToXlsxBtn, xlsxDownload, txtError, '.txt'
-);
-
-xlsxToTxtBtn.addEventListener('click', convertXlsxToTxt);
-txtToXlsxBtn.addEventListener('click', convertTxtToXlsx);
+if (txtDropzone && txtInput && txtFileList && txtToXlsxBtn) {
+    setupDropzone(
+        txtDropzone, txtInput,
+        () => txtFiles, (f) => { txtFiles = f; },
+        txtFileList, txtToXlsxBtn, xlsxDownload, txtError, '.txt'
+    );
+    txtToXlsxBtn.addEventListener('click', convertTxtToXlsx);
+}
 
 // Get current date in YY-MM-DD format
 function getCurrentDate() {
@@ -1470,23 +1486,25 @@ const diffFileBInput = document.getElementById('diffFileB');
 const diffCompareBtn = document.getElementById('diffCompareBtn');
 const diffError = document.getElementById('diffError');
 
-function updateDiffButton() {
-    diffCompareBtn.disabled = !(diffFileA && diffFileB);
+if (diffFileAInput && diffFileBInput && diffCompareBtn) {
+    function updateDiffButton() {
+        diffCompareBtn.disabled = !(diffFileA && diffFileB);
+    }
+
+    diffFileAInput.addEventListener('change', (e) => {
+        diffFileA = e.target.files[0] || null;
+        updateDiffButton();
+        if (diffError) diffError.textContent = '';
+    });
+
+    diffFileBInput.addEventListener('change', (e) => {
+        diffFileB = e.target.files[0] || null;
+        updateDiffButton();
+        if (diffError) diffError.textContent = '';
+    });
+
+    diffCompareBtn.addEventListener('click', compareDiffFiles);
 }
-
-diffFileAInput.addEventListener('change', (e) => {
-    diffFileA = e.target.files[0] || null;
-    updateDiffButton();
-    diffError.textContent = '';
-});
-
-diffFileBInput.addEventListener('change', (e) => {
-    diffFileB = e.target.files[0] || null;
-    updateDiffButton();
-    diffError.textContent = '';
-});
-
-diffCompareBtn.addEventListener('click', compareDiffFiles);
 
 async function compareDiffFiles() {
     try {

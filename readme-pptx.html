@@ -60,8 +60,7 @@
             <h3>Simple idea</h3>
             <p>This tool helps translate a PowerPoint file without manually copying text back and forth.</p>
             <ul>
-                <li>First, mark the PPTX so every text block has a stable ID.</li>
-                <li>Then export the text to a very simple XLSX file.</li>
+                <li>First, run <strong>Prepare PPTX</strong> to mark IDs and download both the marked PPTX and the XLSX template.</li>
                 <li>Add translation columns to the XLSX.</li>
                 <li>Load the marked PPTX and XLSX, adjust font sizes if needed, and download translated PPTX files.</li>
             </ul>
@@ -86,33 +85,22 @@
             </div>
         </div>
 
-        <h2>1. Prepare PPTX IDs</h2>
-        <p>Do this before exporting text. The tool adds stable names to text blocks inside the PPTX. These names are used later to put translations back into the right places.</p>
+        <h2>1. Prepare PPTX</h2>
+        <p>Do this before translating. The tool adds stable names to text blocks, exports a translation XLSX, and gives you a marked PPTX for later steps.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
             <span class="step-title">Upload the original PPTX</span>
             <div class="step-content">
-                <p>Open the <strong>Prepare PPTX IDs</strong> tab, drop the presentation, and click <strong>Prepare PPTX IDs</strong>.</p>
+                <p>Open the <strong>Prepare PPTX</strong> tab, drop the presentation, set the source language code, and click <strong>Prepare PPTX</strong>.</p>
             </div>
         </div>
 
         <div class="step-box">
             <span class="step-number">2</span>
-            <span class="step-title">Use the marked PPTX from now on</span>
+            <span class="step-title">Download marked PPTX and XLSX</span>
             <div class="step-content">
-                <p>Download the marked file. Use this marked file for export and final generation.</p>
-            </div>
-        </div>
-
-        <h2>2. Export PPTX to XLSX</h2>
-        <p>This creates a translation spreadsheet. The file is intentionally simple.</p>
-
-        <div class="step-box">
-            <span class="step-number">1</span>
-            <span class="step-title">Upload the marked PPTX</span>
-            <div class="step-content">
-                <p>Open <strong>PPTX → XLSX</strong>, upload the marked PPTX, choose the source language code, and click <strong>Extract text</strong>.</p>
+                <p>You get two files: <code>*_marked.pptx</code> and <code>.xlsx</code>. Use the marked PPTX and the spreadsheet for translation and final generation.</p>
             </div>
         </div>
 
@@ -124,8 +112,22 @@
 
         <p><strong>Do not edit the <code>key</code> column.</strong> It tells the tool where each line belongs. Add translation columns next to the source column, for example <code>PL</code>, <code>DE</code>, <code>FR</code>.</p>
 
-        <h2>3. Generate Translated PPTX Files</h2>
-        <p>Open <strong>Translations -> PPTX</strong>. Load the marked PPTX and the translated XLSX. The table appears only after both files are loaded.</p>
+        <h3>Inline formatting (bold / italic)</h3>
+        <p>If one paragraph mixes regular, bold, and italic text in PowerPoint, the export uses a small markdown dialect in the cell:</p>
+        <ul>
+            <li><code>**bold**</code> — bold</li>
+            <li><code>*italic*</code> — italic</li>
+            <li><code>***both***</code> — bold and italic</li>
+            <li><code>\*</code> — a literal asterisk</li>
+        </ul>
+        <p>Translators should keep the same markers around the matching words in each language. On <strong>XLSX → PPTX</strong>, group font sizes/colors from the style table merge with inline markers: table bold/italic is the base; markdown refines each part.</p>
+        <p>If markers are broken (unclosed <code>**</code>), the tool warns and inserts plain text without inline formatting.</p>
+
+        <h2>2. Merge XLSX (optional)</h2>
+        <p>When you re-export a deck after edits, open <strong><a href="utilities.html#merge-xlsx">Utilities → Merge XLSX</a></strong> to copy translation columns from an old spreadsheet into a new one where <code>key</code> and source text still match.</p>
+
+        <h2>3. XLSX → PPTX</h2>
+        <p>Open <strong>XLSX → PPTX</strong>. Load the marked PPTX and the translated XLSX. The table appears only after both files are loaded.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
@@ -160,7 +162,7 @@
         </div>
 
         <div class="warning-box">
-            <strong>Important:</strong> If you duplicate slides or heavily edit text blocks in PowerPoint, run <strong>Prepare PPTX IDs</strong> again before exporting a new XLSX.
+            <strong>Important:</strong> If you duplicate slides or heavily edit text blocks in PowerPoint, run <strong>Prepare PPTX</strong> again before using a new XLSX.
         </div>
 
         <h2>Quick FAQ</h2>
@@ -182,8 +184,7 @@
             <h3>Простая идея</h3>
             <p>Инструмент помогает перевести PowerPoint без ручного копирования текста туда-сюда.</p>
             <ul>
-                <li>Сначала размечаем PPTX, чтобы у каждого текстового блока был стабильный ID.</li>
-                <li>Потом выгружаем текст в простой XLSX.</li>
+                <li>Сначала <strong>Prepare PPTX</strong>: стабильные ID, размеченный PPTX и XLSX одним шагом.</li>
                 <li>В XLSX добавляем колонки с переводами.</li>
                 <li>Загружаем размеченный PPTX и XLSX, при необходимости правим размеры шрифта и скачиваем готовые PPTX по языкам.</li>
             </ul>
@@ -208,33 +209,22 @@
             </div>
         </div>
 
-        <h2>1. Prepare PPTX IDs</h2>
-        <p>Этот шаг нужно сделать перед выгрузкой текста. Он добавляет стабильные имена текстовым блокам внутри PPTX. Потом по этим именам перевод встанет обратно в правильные места.</p>
+        <h2>1. Prepare PPTX</h2>
+        <p>Этот шаг нужно сделать перед переводом. Инструмент добавляет стабильные имена блокам, выгружает XLSX и отдаёт размеченный PPTX для следующих шагов.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
             <span class="step-title">Загрузите исходный PPTX</span>
             <div class="step-content">
-                <p>Откройте вкладку <strong>Prepare PPTX IDs</strong>, загрузите презентацию и нажмите <strong>Prepare PPTX IDs</strong>.</p>
+                <p>Откройте вкладку <strong>Prepare PPTX</strong>, загрузите презентацию, укажите код исходного языка и нажмите <strong>Prepare PPTX</strong>.</p>
             </div>
         </div>
 
         <div class="step-box">
             <span class="step-number">2</span>
-            <span class="step-title">Дальше используйте размеченный PPTX</span>
+            <span class="step-title">Скачайте размеченный PPTX и XLSX</span>
             <div class="step-content">
-                <p>Скачайте файл с разметкой. Именно его используйте для выгрузки XLSX и для финальной сборки переводов.</p>
-            </div>
-        </div>
-
-        <h2>2. PPTX → XLSX</h2>
-        <p>На этом шаге получается таблица для перевода. Она специально сделана максимально простой.</p>
-
-        <div class="step-box">
-            <span class="step-number">1</span>
-            <span class="step-title">Загрузите размеченный PPTX</span>
-            <div class="step-content">
-                <p>Откройте <strong>PPTX → XLSX</strong>, загрузите размеченный PPTX, укажите код исходного языка и нажмите <strong>Extract text</strong>.</p>
+                <p>Вы получите два файла: <code>*_marked.pptx</code> и <code>.xlsx</code>. Их используйте для перевода и финальной сборки.</p>
             </div>
         </div>
 
@@ -246,8 +236,22 @@
 
         <p><strong>Колонку <code>key</code> не меняем.</strong> Она говорит инструменту, куда вернуть каждую строку. Рядом можно добавлять языковые колонки: <code>PL</code>, <code>DE</code>, <code>FR</code> и так далее.</p>
 
-        <h2>3. Translations -> PPTX</h2>
-        <p>Откройте <strong>Translations -> PPTX</strong>. Загрузите размеченный PPTX и XLSX с переводами. Таблица появится только после загрузки обоих файлов.</p>
+        <h3>Inline-форматирование (жирный / курсив)</h3>
+        <p>Если в одном абзаце в PowerPoint смешаны обычный текст, жирный и курсив, в ячейке используется узкий markdown:</p>
+        <ul>
+            <li><code>**жирный**</code> — bold</li>
+            <li><code>*курсив*</code> — italic</li>
+            <li><code>***оба***</code> — bold и italic</li>
+            <li><code>\*</code> — звёздочка как символ</li>
+        </ul>
+        <p>Переводчикам нужно сохранять те же маркеры вокруг соответствующих слов. На вкладке <strong>XLSX → PPTX</strong> размеры/цвета из таблицы стилей объединяются с markdown: bold/italic группы — база, markdown уточняет фрагменты.</p>
+        <p>Если маркеры битые (незакрытый <code>**</code>), будет предупреждение и вставка plain text без inline-стилей.</p>
+
+        <h2>2. Merge XLSX (по желанию)</h2>
+        <p>После правок в деке откройте <strong><a href="utilities.html#merge-xlsx">Utilities → Merge XLSX</a></strong>, чтобы перенести колонки переводов из старой таблицы в новую, где совпадают <code>key</code> и исходный текст.</p>
+
+        <h2>3. XLSX → PPTX</h2>
+        <p>Откройте <strong>XLSX → PPTX</strong>. Загрузите размеченный PPTX и XLSX с переводами. Таблица появится только после загрузки обоих файлов.</p>
 
         <div class="step-box">
             <span class="step-number">1</span>
@@ -282,7 +286,7 @@
         </div>
 
         <div class="warning-box">
-            <strong>Важно:</strong> если вы дублировали слайды или сильно меняли текстовые блоки в PowerPoint, перед новой выгрузкой XLSX снова запустите <strong>Prepare PPTX IDs</strong>.
+            <strong>Важно:</strong> если вы дублировали слайды или сильно меняли текстовые блоки в PowerPoint, перед новой таблицей снова запустите <strong>Prepare PPTX</strong>.
         </div>
 
         <h2>Короткий FAQ</h2>

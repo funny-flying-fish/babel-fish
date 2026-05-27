@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel Fish - Find Difference Help</title>
+    <link rel="icon" href="../favicon/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="../favicon/favicon.png" type="image/png">
+    <link rel="stylesheet" href="help.css">
+</head>
+<body>
+    <div class="lang-switch">
+        <button type="button" class="lang-btn active" data-lang="en">English</button>
+        <button type="button" class="lang-btn" data-lang="ru">Russian</button>
+    </div>
+
+    <main class="lang-en">
+
+        <h1>Find Difference</h1><div class="intro-box"><h3>What this tab does</h3><p>Compares two XLSX files by key and English source text, then writes differences into the Utilities log.</p><ul><li>Finds missing keys and extra keys.</li><li>Finds keys with changed English text.</li><li>Reports duplicate keys in either file.</li><li>Shows a clean no-differences message when files match.</li></ul></div>
+        <h2>Input Format</h2><ul><li>Both files must be XLSX.</li><li>Column A is the key name.</li><li>Column B is English source text.</li><li>Row 1 is treated as a header and skipped.</li></ul>
+        <h2>How to Use</h2><div class="step-box"><span class="step-number">1</span><span class="step-title">Choose File A</span><div class="step-content"><p>Usually this is the older or reference XLSX.</p></div></div><div class="step-box"><span class="step-number">2</span><span class="step-title">Choose File B</span><div class="step-content"><p>Usually this is the newer XLSX you want to check.</p></div></div><div class="step-box"><span class="step-number">3</span><span class="step-title">Compare</span><div class="step-content"><p>Click <strong>Compare</strong>. Results appear in the log below the page.</p></div></div>
+
+    </main>
+
+    <main class="lang-ru">
+
+        <h1>Find Difference</h1><div class="intro-box"><h3>Что делает вкладка</h3><p>Сравнивает два XLSX по ключу и английскому source text, а затем пишет отличия в Utilities log.</p><ul><li>Находит отсутствующие и лишние ключи.</li><li>Находит ключи с изменённым английским текстом.</li><li>Сообщает о дублях ключей в каждом файле.</li><li>Показывает понятное сообщение, если отличий нет.</li></ul></div>
+        <h2>Формат входных файлов</h2><ul><li>Оба файла должны быть XLSX.</li><li>Колонка A - имя ключа.</li><li>Колонка B - английский source text.</li><li>Строка 1 считается заголовком и пропускается.</li></ul>
+        <h2>Как пользоваться</h2><div class="step-box"><span class="step-number">1</span><span class="step-title">Выберите File A</span><div class="step-content"><p>Обычно это старый или эталонный XLSX.</p></div></div><div class="step-box"><span class="step-number">2</span><span class="step-title">Выберите File B</span><div class="step-content"><p>Обычно это новый XLSX, который нужно проверить.</p></div></div><div class="step-box"><span class="step-number">3</span><span class="step-title">Сравните</span><div class="step-content"><p>Нажмите <strong>Compare</strong>. Результаты появятся в логе под страницей.</p></div></div>
+
+    </main>
+
+    <div class="footer">Babel Fish - Find Difference</div>
+    <script src="help.js"></script>
+</body>
+</html>

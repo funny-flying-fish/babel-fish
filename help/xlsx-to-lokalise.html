@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel Fish - Lokalise Export Help</title>
+    <link rel="icon" href="../favicon/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="../favicon/favicon.png" type="image/png">
+    <link rel="stylesheet" href="help.css">
+</head>
+<body>
+    <div class="lang-switch">
+        <button type="button" class="lang-btn active" data-lang="en">English</button>
+        <button type="button" class="lang-btn" data-lang="ru">Russian</button>
+    </div>
+
+    <main class="lang-en">
+
+        <h1>Lokalise Export</h1><div class="intro-box"><h3>What this tab does</h3><p>Synchronizes keys and English source text from an XLSX file with a Lokalise project.</p><ul><li>Creates keys that are present in XLSX but missing in Lokalise.</li><li>Updates existing English source text.</li><li>Optionally deletes keys missing from XLSX.</li><li>Shows a preview and creates a PDF report after export.</li></ul></div>
+        <h2>API Token</h2><p>Create a token at <a href="https://app.lokalise.com/profile/#apitokens" target="_blank" rel="noopener">app.lokalise.com/profile/#apitokens</a>, paste it into the <strong>API Token</strong> field, and click <strong>Load Projects</strong>.</p><div class="warning-box"><strong>Security:</strong> The token is not saved by Babel Fish.</div>
+        <h2>XLSX Format</h2><table><tr><th>Column A</th><th>Column B</th></tr><tr><td>Key name</td><td>English source text</td></tr></table><ul><li>Row 1 is treated as a header and skipped.</li><li>Only key names and English source text are synchronized.</li><li>Other language translations in Lokalise are not edited.</li></ul>
+        <h2>How to Use</h2><div class="step-box"><span class="step-number">1</span><span class="step-title">Load projects</span><div class="step-content"><p>Paste the token, click <strong>Load Projects</strong>, and choose the target project.</p></div></div><div class="step-box"><span class="step-number">2</span><span class="step-title">Upload XLSX</span><div class="step-content"><p>Select the file with key names and English source text.</p></div></div><div class="step-box"><span class="step-number">3</span><span class="step-title">Preview and export</span><div class="step-content"><p>Click <strong>Preview Diff</strong>. If it is correct, click <strong>Run Export</strong>.</p></div></div>
+
+    </main>
+
+    <main class="lang-ru">
+
+        <h1>Lokalise Export</h1><div class="intro-box"><h3>Что делает вкладка</h3><p>Синхронизирует ключи и английский исходный текст из XLSX с проектом Lokalise.</p><ul><li>Создаёт ключи, которые есть в XLSX, но отсутствуют в Lokalise.</li><li>Обновляет существующий английский source text.</li><li>Опционально удаляет ключи, которых нет в XLSX.</li><li>Показывает preview и создаёт PDF-отчёт после экспорта.</li></ul></div>
+        <h2>API token</h2><p>Создайте токен на <a href="https://app.lokalise.com/profile/#apitokens" target="_blank" rel="noopener">app.lokalise.com/profile/#apitokens</a>, вставьте его в поле <strong>API Token</strong> и нажмите <strong>Load Projects</strong>.</p><div class="warning-box"><strong>Безопасность:</strong> Babel Fish не сохраняет токен.</div>
+        <h2>Формат XLSX</h2><table><tr><th>Колонка A</th><th>Колонка B</th></tr><tr><td>Имя ключа</td><td>Английский source text</td></tr></table><ul><li>Строка 1 считается заголовком и пропускается.</li><li>Синхронизируются только имена ключей и английский source text.</li><li>Переводы на других языках в Lokalise не редактируются.</li></ul>
+        <h2>Как пользоваться</h2><div class="step-box"><span class="step-number">1</span><span class="step-title">Загрузите проекты</span><div class="step-content"><p>Вставьте токен, нажмите <strong>Load Projects</strong> и выберите проект.</p></div></div><div class="step-box"><span class="step-number">2</span><span class="step-title">Загрузите XLSX</span><div class="step-content"><p>Выберите файл с ключами и английским исходным текстом.</p></div></div><div class="step-box"><span class="step-number">3</span><span class="step-title">Проверьте preview и экспортируйте</span><div class="step-content"><p>Нажмите <strong>Preview Diff</strong>. Если всё корректно, нажмите <strong>Run Export</strong>.</p></div></div>
+
+    </main>
+
+    <div class="footer">Babel Fish - Lokalise Export</div>
+    <script src="help.js"></script>
+</body>
+</html>

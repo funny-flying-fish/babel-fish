@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel fish - Utilities</title>
+    <link rel="icon" href="favicon/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="favicon/favicon.png" type="image/png">
+    <script src="vendor/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link rel="stylesheet" href="main.css">
+</head>
+
+<body class="app-shell">
+    <header class="app-chrome">
+        <nav class="section-nav" aria-label="Product area">
+            <a href="index.html" class="section-nav-btn" data-section="print">Print materials</a>
+            <a href="pptx-convert.html" class="section-nav-btn" data-section="presentations">Presentations</a>
+            <button type="button" class="section-nav-btn active" data-section="utilities">Utilities</button>
+        </nav>
+
+        <nav class="tabs-nav" aria-label="Tools">
+            <button class="tab-btn active" data-tab="xlsx-to-lokalise" data-section="utilities">XLSX ? Lokalise</button>
+            <button class="tab-btn" data-tab="find-diff" data-section="utilities">Find difference</button>
+            <button class="tab-btn" data-tab="merge-xlsx" data-section="utilities">Merge XLSX</button>
+        </nav>
+    </header>
+
+    <div class="layout app-layout">
+        <div class="main-column">
+            <div class="tab-content active" id="tab-xlsx-to-lokalise">
+                <div class="section">
+                    <div class="section-heading">
+                        <h2>Lokalise Export</h2>
+                        <a href="help/xlsx-to-lokalise.html" class="help-button" target="_blank" rel="noopener">Help</a>
+                    </div>
+                    <p class="note section-lead">
+                        Upload an XLSX file with keys and source text (EN), then sync with a Lokalise project.
+                    </p>
+
+                    <div class="form-row">
+                        <label for="apiToken">API Token:</label>
+                        <input type="password" id="apiToken" class="token-input" placeholder="Enter Lokalise API token">
+                        <button id="loadProjectsBtn" class="btn-secondary">Load Projects</button>
+                    </div>
+                    <p class="token-hint"><a href="https://app.lokalise.com/profile/#apitokens" target="_blank"
+                            rel="noopener">Where can I get it?</a></p>
+
+                    <div class="form-row">
+                        <label for="projectSelect">Project:</label>
+                        <select id="projectSelect" class="project-select" disabled>
+                            <option value="">ù Select project ù</option>
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <input type="file" id="lokaliseXlsxInput" accept=".xlsx">
+                    </div>
+
+                    <div class="ops-checkboxes">
+                        <label><input type="checkbox" id="opCreate" checked> Create new keys</label>
+                        <label><input type="checkbox" id="opUpdate" checked> Update source (EN)</label>
+                        <label><input type="checkbox" id="opDelete"> Delete missing keys</label>
+                    </div>
+
+                    <div class="btn-row">
+                        <button id="previewBtn" disabled>Preview Diff</button>
+                        <button id="runExportBtn" disabled>Run Export</button>
+                        <a href="#" id="downloadPdfLink" class="pdf-link" style="display: none;">Download PDF Report</a>
+                    </div>
+
+                    <div id="statusLine" class="status-line"></div>
+
+                    <div id="previewSection" class="preview-section" style="display: none;">
+                        <h4>Preview</h4>
+                        <div id="previewContent"></div>
+                    </div>
+                </div>
+
+                <ul class="note-list">
+                    <li>XLSX format: Column A = key name, Column B = source text (EN).</li>
+                    <li>First row should be headers (will be skipped).</li>
+                    <li>API token is not saved anywhere.</li>
+                    <li>Rate limit: max 6 requests/second.</li>
+                </ul>
+            </div>
+
+            <div class="tab-content" id="tab-find-diff">
+                <div class="section">
+                    <div class="section-heading">
+                        <h2>Find difference</h2>
+                        <a href="help/find-difference.html" class="help-button" target="_blank" rel="noopener">Help</a>
+                    </div>
+                    <p class="note section-lead">
+                        Compare two XLSX files by keys (column 1) and English texts (column 2). Differences will appear in the log.
+                    </p>
+
+                    <div class="form-row">
+                        <label for="diffFileA" class="diff-file-label">File A:</label>
+                        <input type="file" id="diffFileA" accept=".xlsx">
+                    </div>
+                    <div class="form-row">
+                        <label for="diffFileB" class="diff-file-label">File B:</label>
+                        <input type="file" id="diffFileB" accept=".xlsx">
+                    </div>
+
+                    <div class="btn-row">
+                        <button id="diffCompareBtn" disabled>Compare</button>
+                    </div>
+                    <div class="error" id="diffError"></div>
+                </div>
+
+                <ul class="note-list">
+                    <li>Both files must be XLSX.</li>
+                    <li>Column 1 (A) = key name, Column 2 (B) = English source text.</li>
+                    <li>First row is treated as a header and skipped.</li>
+                    <li>The comparison checks: missing keys, extra keys, and text differences.</li>
+                </ul>
+            </div>
+
+            <div class="tab-content" id="tab-merge-xlsx">
+                <div class="section">
+                    <div class="section-heading">
+                        <h2>Merge XLSX</h2>
+                        <a href="help/merge-xlsx.html" class="help-button" target="_blank" rel="noopener">Help</a>
+                    </div>
+                    <p class="note section-lead">
+                        Copy translation columns from an old XLSX into a new XLSX when both key and EN text match.
+                    </p>
+                    <div class="pptx-dual-dropzones">
+                        <div class="dropzone" id="mergeNewXlsxDropzone">
+                            <input type="file" id="mergeNewXlsxInput" accept=".xlsx" hidden>
+                            <div class="dropzone-icon">??</div>
+                            <div class="dropzone-text">Drop new .xlsx here or <span class="dropzone-link">browse</span></div>
+                            <div class="dropzone-hint">Base file that keeps its keys and EN text</div>
+                            <div class="dropzone-filename" id="mergeNewXlsxFilename"></div>
+                        </div>
+                        <div class="dropzone" id="mergeOldXlsxDropzone">
+                            <input type="file" id="mergeOldXlsxInput" accept=".xlsx" hidden>
+                            <div class="dropzone-icon">??</div>
+                            <div class="dropzone-text">Drop old .xlsx here or <span class="dropzone-link">browse</span></div>
+                            <div class="dropzone-hint">Translation columns are copied from this file</div>
+                            <div class="dropzone-filename" id="mergeOldXlsxFilename"></div>
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-top: 12px;">
+                        <button id="mergeXlsxBtn" disabled>Merge</button>
+                    </div>
+                    <div class="download-area" id="mergeXlsxResult"></div>
+                    <div class="error" id="mergeXlsxError"></div>
+                </div>
+
+                <ul class="note-list">
+                    <li>Requires <code>key</code> and <code>EN</code> columns in both XLSX files.</li>
+                    <li>Language columns from the old XLSX are copied only when <code>key</code> and <code>EN</code> match (inline markdown markers <code>**</code> / <code>*</code> are ignored when comparing EN).</li>
+                    <li>Missing keys or changed <code>EN</code> text receive <code>-</code> in the copied language columns.</li>
+                    <li>Changed EN rows are listed in a table with a <strong>Save</strong> checkbox; tick the rows you trust, then click <strong>Merge again</strong> to copy their translations.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <aside class="log-panel log-panel--below">
+        <div class="section">
+            <div class="log-header">
+                <h2 id="logTitle">Utilities log</h2>
+                <span class="log-count" id="logCount">0 changes</span>
+            </div>
+            <p class="log-empty" id="logEmpty">No changes yet.</p>
+            <ol class="log-list" id="logList"></ol>
+        </div>
+    </aside>
+
+    <script src="app-nav.js"></script>
+    <script src="pptx-rich-text.js"></script>
+    <script src="converter.js"></script>
+    <script src="exporter.js"></script>
+    <script src="pptx-merge-xlsx.js"></script>
+    <script>
+        initBabelFishNav({
+            defaultSection: 'utilities',
+            defaultTab: 'xlsx-to-lokalise',
+            pageSection: 'utilities',
+            tabTitles: {
+                'xlsx-to-lokalise': 'Lokalise export log',
+                'find-diff': 'Difference log',
+                'merge-xlsx': 'Merge XLSX log'
+            }
+        });
+    </script>
+</body>
+
+</html>

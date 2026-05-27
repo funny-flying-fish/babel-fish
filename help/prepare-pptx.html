@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel Fish - Prepare PPTX Help</title>
+    <link rel="icon" href="../favicon/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="../favicon/favicon.png" type="image/png">
+    <link rel="stylesheet" href="help.css">
+</head>
+<body>
+    <div class="lang-switch">
+        <button type="button" class="lang-btn active" data-lang="en">English</button>
+        <button type="button" class="lang-btn" data-lang="ru">Russian</button>
+    </div>
+
+    <main class="lang-en">
+
+        <h1>Prepare PPTX</h1>
+        <div class="intro-box"><h3>What this tab does</h3><p>Prepares a PowerPoint file for translation by adding stable translation IDs to text containers and exporting an XLSX template from the same marked file.</p><ul><li>Creates or repairs names like <code>tr_7f3a91_body</code> in the PowerPoint Selection Pane.</li><li>Preserves valid existing IDs and repairs duplicates.</li><li>Exports text by PowerPoint paragraph, not visual line wrap.</li><li>Exports inline bold/italic as markdown markers inside XLSX cells.</li></ul></div>
+        <h2>How to Use</h2><div class="step-box"><span class="step-number">1</span><span class="step-title">Upload the PPTX</span><div class="step-content"><p>Drop the original or already marked presentation into the upload zone.</p></div></div><div class="step-box"><span class="step-number">2</span><span class="step-title">Set source language</span><div class="step-content"><p>Enter the source language column name, usually <code>EN</code>.</p></div></div><div class="step-box"><span class="step-number">3</span><span class="step-title">Run Prepare PPTX</span><div class="step-content"><p>Click <strong>Prepare PPTX</strong>. Download both the marked PPTX and the XLSX template.</p></div></div>
+        <h2>Output Files</h2><ul><li><code>*_marked.pptx</code> - the file used later in XLSX → PPTX.</li><li><code>*.xlsx</code> - the translation template.</li><li><code>*_report.xlsx</code> appears when there are warnings worth reviewing.</li></ul>
+        <h2>XLSX Format</h2><table><tr><th>key</th><th>EN</th><th>PL</th><th>DE</th></tr><tr><td><code>tr_7f3a91_body__p0</code></td><td>Original text</td><td>Polish text</td><td>German text</td></tr></table><div class="warning-box"><strong>Do not edit <code>key</code>.</strong> It tells the generator where each paragraph belongs.</div>
+        <h2>Inline Formatting</h2><ul><li><code>**bold**</code> for bold.</li><li><code>*italic*</code> for italic.</li><li><code>***both***</code> for bold italic.</li><li><code>\*</code> for a literal asterisk.</li></ul><p>Run Prepare PPTX again after duplicating slides or making large structural edits.</p>
+
+    </main>
+
+    <main class="lang-ru">
+
+        <h1>Prepare PPTX</h1>
+        <div class="intro-box"><h3>Что делает вкладка</h3><p>Готовит PowerPoint к переводу: добавляет стабильные translation IDs к текстовым контейнерам и выгружает XLSX-шаблон из того же размеченного файла.</p><ul><li>Создаёт или чинит имена вроде <code>tr_7f3a91_body</code> в Selection Pane.</li><li>Сохраняет валидные существующие ID и исправляет дубли.</li><li>Экспортирует текст по абзацам PowerPoint, а не по визуальным переносам.</li><li>Экспортирует inline bold/italic как markdown-маркеры внутри XLSX.</li></ul></div>
+        <h2>Как пользоваться</h2><div class="step-box"><span class="step-number">1</span><span class="step-title">Загрузите PPTX</span><div class="step-content"><p>Перетащите оригинальную или уже размеченную презентацию в upload-зону.</p></div></div><div class="step-box"><span class="step-number">2</span><span class="step-title">Укажите исходный язык</span><div class="step-content"><p>Введите имя колонки исходного языка, обычно <code>EN</code>.</p></div></div><div class="step-box"><span class="step-number">3</span><span class="step-title">Запустите Prepare PPTX</span><div class="step-content"><p>Нажмите <strong>Prepare PPTX</strong>. Скачайте размеченный PPTX и XLSX-шаблон.</p></div></div>
+        <h2>Выходные файлы</h2><ul><li><code>*_marked.pptx</code> - файл, который потом нужен на вкладке XLSX → PPTX.</li><li><code>*.xlsx</code> - шаблон перевода.</li><li><code>*_report.xlsx</code> появляется, если есть предупреждения для проверки.</li></ul>
+        <h2>Формат XLSX</h2><table><tr><th>key</th><th>EN</th><th>PL</th><th>DE</th></tr><tr><td><code>tr_7f3a91_body__p0</code></td><td>Original text</td><td>Polski tekst</td><td>Deutscher Text</td></tr></table><div class="warning-box"><strong>Не меняйте <code>key</code>.</strong> По нему генератор понимает, куда вернуть каждый абзац.</div>
+        <h2>Inline-форматирование</h2><ul><li><code>**bold**</code> для жирного.</li><li><code>*italic*</code> для курсива.</li><li><code>***both***</code> для жирного курсива.</li><li><code>\*</code> для звёздочки как символа.</li></ul><p>Запускайте Prepare PPTX заново после дублирования слайдов или больших структурных правок.</p>
+
+    </main>
+
+    <div class="footer">Babel Fish - Prepare PPTX</div>
+    <script src="help.js"></script>
+</body>
+</html>

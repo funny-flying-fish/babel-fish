@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel Fish - Merge XLSX Help</title>
+    <link rel="icon" href="../favicon/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="../favicon/favicon.png" type="image/png">
+    <link rel="stylesheet" href="help.css">
+</head>
+<body>
+    <div class="lang-switch">
+        <button type="button" class="lang-btn active" data-lang="en">English</button>
+        <button type="button" class="lang-btn" data-lang="ru">Russian</button>
+    </div>
+
+    <main class="lang-en">
+
+        <h1>Merge XLSX</h1><div class="intro-box"><h3>What this tab does</h3><p>Copies translation columns from an old XLSX into a new XLSX when the key and English source text match.</p><ul><li>Useful after re-running Prepare PPTX for an edited presentation.</li><li>Preserves the new file's keys and English text.</li><li>Copies language columns from the old file.</li><li>Shows changed English rows with a manual Save option.</li></ul></div>
+        <h2>Required Format</h2><ul><li>Both files must contain <code>key</code> and <code>EN</code> columns.</li><li>The new XLSX is the base file that keeps its rows.</li><li>The old XLSX is the source of existing translation columns.</li><li>Inline markdown markers are ignored when comparing English text.</li></ul>
+        <h2>How to Use</h2><div class="step-box"><span class="step-number">1</span><span class="step-title">Load the new XLSX</span><div class="step-content"><p>Drop the newly exported XLSX into the new upload zone.</p></div></div><div class="step-box"><span class="step-number">2</span><span class="step-title">Load the old XLSX</span><div class="step-content"><p>Drop the previous translated XLSX into the old upload zone.</p></div></div><div class="step-box"><span class="step-number">3</span><span class="step-title">Merge</span><div class="step-content"><p>Click <strong>Merge</strong>. Download the merged XLSX and review the summary.</p></div></div>
+        <h2>Manual Save for Changed EN</h2><p>Changed English rows appear with <strong>Save</strong> checkboxes. Tick rows where you trust the old translations, then click <strong>Merge again</strong>.</p>
+
+    </main>
+
+    <main class="lang-ru">
+
+        <h1>Merge XLSX</h1><div class="intro-box"><h3>Что делает вкладка</h3><p>Копирует колонки с переводами из старого XLSX в новый XLSX, когда совпадают key и английский source text.</p><ul><li>Полезно после повторного Prepare PPTX для изменённой презентации.</li><li>Сохраняет ключи и английский текст нового файла.</li><li>Копирует языковые колонки из старого файла.</li><li>Показывает строки с изменённым EN и даёт ручную опцию Save.</li></ul></div>
+        <h2>Требуемый формат</h2><ul><li>В обоих файлах должны быть колонки <code>key</code> и <code>EN</code>.</li><li>Новый XLSX - базовый файл, его строки сохраняются.</li><li>Старый XLSX - источник существующих колонок с переводами.</li><li>Inline markdown-маркеры игнорируются при сравнении английского текста.</li></ul>
+        <h2>Как пользоваться</h2><div class="step-box"><span class="step-number">1</span><span class="step-title">Загрузите новый XLSX</span><div class="step-content"><p>Перетащите новый экспортированный XLSX в зону new.</p></div></div><div class="step-box"><span class="step-number">2</span><span class="step-title">Загрузите старый XLSX</span><div class="step-content"><p>Перетащите предыдущий переведённый XLSX в зону old.</p></div></div><div class="step-box"><span class="step-number">3</span><span class="step-title">Смерджите</span><div class="step-content"><p>Нажмите <strong>Merge</strong>. Скачайте merged XLSX и проверьте summary.</p></div></div>
+        <h2>Ручной Save для изменённого EN</h2><p>Строки с изменённым английским появляются с чекбоксами <strong>Save</strong>. Отметьте строки, где старым переводам можно доверять, затем нажмите <strong>Merge again</strong>.</p>
+
+    </main>
+
+    <div class="footer">Babel Fish - Merge XLSX</div>
+    <script src="help.js"></script>
+</body>
+</html>

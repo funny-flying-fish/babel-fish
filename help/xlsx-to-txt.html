@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel Fish - XLSX to TXT Help</title>
+    <link rel="icon" href="../favicon/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="../favicon/favicon.png" type="image/png">
+    <link rel="stylesheet" href="help.css">
+</head>
+<body>
+    <div class="lang-switch">
+        <button type="button" class="lang-btn active" data-lang="en">English</button>
+        <button type="button" class="lang-btn" data-lang="ru">Russian</button>
+    </div>
+
+    <main class="lang-en">
+
+        <h1>XLSX → TXT</h1>
+        <div class="intro-box">
+            <h3>What this tab does</h3>
+            <p>Converts translation XLSX files into tab-separated TXT files for InDesign import and applies typography cleanup during export.</p>
+            <ul>
+                <li>Supports one or many XLSX files in the same run.</li>
+                <li>Adds a version date automatically.</li>
+                <li>Can add an encoding suffix to filenames.</li>
+                <li>Shows every formatting change in the conversion log.</li>
+            </ul>
+        </div>
+        <h2>Input Format</h2>
+        <ul>
+            <li>Row 1 contains headers or labels.</li>
+            <li>Column A contains language codes such as <code>en_EN</code>, <code>fr_FR</code>, <code>PL</code>.</li>
+            <li>Other columns contain the text values that will become TXT columns.</li>
+        </ul>
+        <div class="tip-box"><strong>Tip:</strong> Put a project code in square brackets in the filename, for example <code>Translations [PROJ-001].xlsx</code>. If no code is found, the converter uses <code>not-set</code> and writes a warning to the log.</div>
+        <h2>How to Use</h2>
+        <div class="step-box"><span class="step-number">1</span><span class="step-title">Upload XLSX files</span><div class="step-content"><p>Drop files into the upload zone or click it to browse. Multiple files are supported.</p></div></div>
+        <div class="step-box"><span class="step-number">2</span><span class="step-title">Choose encoding</span><div class="step-content"><p><strong>Unicode</strong> is selected by default and supports Polish and other non-Western characters. Use <strong>Mac Roman</strong> only for legacy workflows that do not need Central European characters. <strong>Windows-1252</strong> is available for older Western European workflows.</p></div></div>
+        <div class="step-box"><span class="step-number">3</span><span class="step-title">Choose rules</span><div class="step-content"><p>Leave the default rules on for normal production. Disable a rule only when you intentionally need raw text.</p></div></div>
+        <div class="step-box"><span class="step-number">4</span><span class="step-title">Convert and download</span><div class="step-content"><p>Click <strong>Convert</strong>. Each source file gets its own download link. Downloads are triggered in a Safari-friendly way.</p></div></div>
+        <h2>Formatting Rules</h2>
+        <table>
+            <tr><th>Option</th><th>Effect</th></tr>
+            <tr><td>Numeric formatting</td><td>Normalizes number grouping and decimal separators by language.</td></tr>
+            <tr><td>Unit spacing</td><td>Adds non-breaking spaces between numbers and units.</td></tr>
+            <tr><td>Unit case normalization</td><td>Normalizes units such as <code>kw</code> to <code>kW</code>.</td></tr>
+            <tr><td>Strip outer quotes</td><td>Removes quotes that wrap the entire cell value.</td></tr>
+            <tr><td>Global rules</td><td>Adds NBSP after initials, abbreviations, and in dates.</td></tr>
+            <tr><td>Language rules</td><td>Applies language-specific spacing rules for EN, FR, DE, ES, NL, and PL.</td></tr>
+        </table>
+        <h2>Output</h2>
+        <ul>
+            <li>The TXT is tab-separated and ready for InDesign import.</li>
+            <li>The conversion date is added automatically as <code>YY-MM-DD</code>.</li>
+            <li>Line breaks and repeated spaces are cleaned up.</li>
+            <li>Language codes are normalized to short codes where applicable.</li>
+        </ul>
+
+    </main>
+
+    <main class="lang-ru">
+
+        <h1>XLSX → TXT</h1>
+        <div class="intro-box">
+            <h3>Что делает вкладка</h3>
+            <p>Конвертирует XLSX-файлы с переводами в TXT с табуляцией для импорта в InDesign и применяет типографскую очистку при экспорте.</p>
+            <ul>
+                <li>Можно загрузить один или несколько XLSX за один запуск.</li>
+                <li>Дата версии добавляется автоматически.</li>
+                <li>Можно добавить суффикс кодировки в имя файла.</li>
+                <li>Все изменения форматирования попадают в лог.</li>
+            </ul>
+        </div>
+        <h2>Формат входного файла</h2>
+        <ul>
+            <li>Строка 1 содержит заголовки или labels.</li>
+            <li>Колонка A содержит коды языков, например <code>en_EN</code>, <code>fr_FR</code>, <code>PL</code>.</li>
+            <li>Остальные колонки содержат тексты, которые станут колонками TXT.</li>
+        </ul>
+        <div class="tip-box"><strong>Совет:</strong> Добавляйте код проекта в квадратных скобках в имя файла, например <code>Translations [PROJ-001].xlsx</code>. Если кода нет, будет использовано <code>not-set</code>, а в лог попадёт предупреждение.</div>
+        <h2>Как пользоваться</h2>
+        <div class="step-box"><span class="step-number">1</span><span class="step-title">Загрузите XLSX</span><div class="step-content"><p>Перетащите файлы в upload-зону или нажмите на неё для выбора. Поддерживается несколько файлов.</p></div></div>
+        <div class="step-box"><span class="step-number">2</span><span class="step-title">Выберите кодировку</span><div class="step-content"><p><strong>Unicode</strong> выбран по умолчанию и поддерживает польский и другие не только западноевропейские символы. <strong>Mac Roman</strong> используйте только для legacy-процессов без центральноевропейских языков.</p></div></div>
+        <div class="step-box"><span class="step-number">3</span><span class="step-title">Настройте правила</span><div class="step-content"><p>Для обычной работы оставляйте правила включёнными. Отключайте правило только если нужен исходный текст без обработки.</p></div></div>
+        <div class="step-box"><span class="step-number">4</span><span class="step-title">Сконвертируйте и скачайте</span><div class="step-content"><p>Нажмите <strong>Convert</strong>. Для каждого файла появится своя ссылка. Скачивание сделано совместимым с Safari.</p></div></div>
+        <h2>Правила форматирования</h2>
+        <table>
+            <tr><th>Опция</th><th>Что делает</th></tr>
+            <tr><td>Numeric formatting</td><td>Нормализует разряды и десятичные разделители по языку.</td></tr>
+            <tr><td>Unit spacing</td><td>Ставит неразрывный пробел между числом и единицей измерения.</td></tr>
+            <tr><td>Unit case normalization</td><td>Нормализует единицы вроде <code>kw</code> в <code>kW</code>.</td></tr>
+            <tr><td>Strip outer quotes</td><td>Убирает кавычки вокруг всего значения ячейки.</td></tr>
+            <tr><td>Global rules</td><td>Ставит NBSP после инициалов, сокращений и в датах.</td></tr>
+            <tr><td>Language rules</td><td>Применяет языковые правила для EN, FR, DE, ES, NL и PL.</td></tr>
+        </table>
+        <h2>Результат</h2>
+        <ul>
+            <li>TXT разделён табуляцией и готов для импорта в InDesign.</li>
+            <li>Дата конвертации добавляется автоматически как <code>YY-MM-DD</code>.</li>
+            <li>Переносы строк и повторные пробелы очищаются.</li>
+            <li>Коды языков нормализуются до короткого вида там, где это применимо.</li>
+        </ul>
+
+    </main>
+
+    <div class="footer">Babel Fish - XLSX to TXT</div>
+    <script src="help.js"></script>
+</body>
+</html>

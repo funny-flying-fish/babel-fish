@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Babel Fish - XLSX to PPTX Help</title>
+    <link rel="icon" href="../favicon/favicon.svg" type="image/svg+xml">
+    <link rel="alternate icon" href="../favicon/favicon.png" type="image/png">
+    <link rel="stylesheet" href="help.css">
+</head>
+<body>
+    <div class="lang-switch">
+        <button type="button" class="lang-btn active" data-lang="en">English</button>
+        <button type="button" class="lang-btn" data-lang="ru">Russian</button>
+    </div>
+
+    <main class="lang-en">
+        <h1>XLSX → PPTX</h1>
+        <div class="intro-box">
+            <h3>What this tab does</h3>
+            <p>Generates localized PowerPoint files from a marked PPTX and a translated XLSX. It also lets you inspect and tune font-size groups per language before download.</p>
+            <ul>
+                <li>Reads language columns from XLSX automatically.</li>
+                <li>Builds a style table from the marked PPTX.</li>
+                <li>Lets you adjust font sizes per language and per style group.</li>
+                <li>Lets you merge several style groups when they should share one size setting.</li>
+                <li>Supports inline markdown for bold and italic inside cells.</li>
+                <li>Can save and load size and style-merge presets as JSON.</li>
+            </ul>
+        </div>
+
+        <h2>Required Files</h2>
+        <ul>
+            <li>A marked PPTX produced by <strong>Prepare PPTX</strong>.</li>
+            <li>A translation XLSX with a <code>key</code> column, source column, and language columns such as <code>PL</code>, <code>DE</code>, <code>FR</code>.</li>
+        </ul>
+
+        <h2>How to Use</h2>
+        <div class="step-box"><span class="step-number">1</span><span class="step-title">Load both files</span><div class="step-content"><p>Drop the marked PPTX into the left upload zone and the translated XLSX into the right upload zone. The style table appears after both files are loaded.</p></div></div>
+        <div class="step-box"><span class="step-number">2</span><span class="step-title">Review style groups</span><div class="step-content"><p>The table groups similar text styles from the PPTX. Each row has a style number, per-language size fields, visual style information, a selection checkbox, and a usage count.</p></div></div>
+        <div class="step-box"><span class="step-number">3</span><span class="step-title">Adjust sizes</span><div class="step-content"><p>Edit individual size cells or use the multiplier at the top of a language column to recalculate all sizes for that language.</p></div></div>
+        <div class="step-box"><span class="step-number">4</span><span class="step-title">Preview examples</span><div class="step-content"><p>Hover style values to preview examples. Click a style value to pin a style card in the right panel; remove it from the panel when you no longer need it.</p></div></div>
+        <div class="step-box"><span class="step-number">5</span><span class="step-title">Download PPTX</span><div class="step-content"><p>Use the language download buttons at the bottom of the table. The generated file uses your size overrides, merged style groups, and translated text for that language.</p></div></div>
+
+        <h2>Merging Style Groups</h2>
+        <p>Sometimes PowerPoint creates separate style groups that should be treated as one group for translation fitting. You can merge them so they share one reference size.</p>
+        <ul>
+            <li>Tick the checkboxes for two or more style rows. A floating toolbar appears next to the first selected style.</li>
+            <li>Click <strong>Merge</strong>. The first selected style becomes the reference style; all other selected styles are merged into it.</li>
+            <li>Merged rows are highlighted and alias rows show <strong>Merged into #...</strong>. Alias rows use the reference style's size settings during PPTX generation.</li>
+            <li>To undo a merge, select the merged reference or alias row and click <strong>Unmerge</strong>.</li>
+            <li>Save a preset if you want to reuse the same merge map and size settings later.</li>
+        </ul>
+
+        <h2>Presets</h2>
+        <p><strong>Save preset</strong> downloads a JSON file with current size settings, language multipliers, and style merges. <strong>Load preset</strong> applies it later to the same or compatible presentation.</p>
+
+        <h2>Inline Markdown</h2>
+        <ul>
+            <li><code>**bold**</code>, <code>*italic*</code>, and <code>***both***</code> are converted back to inline PowerPoint formatting.</li>
+            <li>Style table bold/italic acts as the base style; markdown refines specific text segments.</li>
+            <li>Broken markers produce a warning and plain text fallback.</li>
+        </ul>
+    </main>
+
+    <main class="lang-ru">
+        <h1>XLSX → PPTX</h1>
+        <div class="intro-box">
+            <h3>Что делает вкладка</h3>
+            <p>Собирает локализованные PowerPoint-файлы из размеченного PPTX и XLSX с переводами. Перед скачиванием можно проверить стили и настроить размеры шрифта для каждого языка.</p>
+            <ul>
+                <li>Автоматически читает языковые колонки из XLSX.</li>
+                <li>Строит таблицу стилей из размеченного PPTX.</li>
+                <li>Позволяет настраивать размеры по языкам и группам стилей.</li>
+                <li>Позволяет объединять разные группы стилей, если они должны использовать один размер.</li>
+                <li>Поддерживает inline markdown для bold и italic внутри ячеек.</li>
+                <li>Умеет сохранять и загружать presets с размерами и объединениями стилей.</li>
+            </ul>
+        </div>
+
+        <h2>Нужные файлы</h2>
+        <ul>
+            <li>Размеченный PPTX, полученный через <strong>Prepare PPTX</strong>.</li>
+            <li>XLSX с переводами: колонка <code>key</code>, исходный язык и языковые колонки вроде <code>PL</code>, <code>DE</code>, <code>FR</code>.</li>
+        </ul>
+
+        <h2>Как пользоваться</h2>
+        <div class="step-box"><span class="step-number">1</span><span class="step-title">Загрузите оба файла</span><div class="step-content"><p>Размеченный PPTX загрузите слева, XLSX с переводами - справа. Таблица стилей появится после загрузки обоих файлов.</p></div></div>
+        <div class="step-box"><span class="step-number">2</span><span class="step-title">Проверьте группы стилей</span><div class="step-content"><p>Таблица группирует похожие текстовые стили из PPTX. В строке есть номер стиля, поля размеров по языкам, визуальные параметры, чекбокс выбора и количество использований.</p></div></div>
+        <div class="step-box"><span class="step-number">3</span><span class="step-title">Настройте размеры</span><div class="step-content"><p>Можно менять отдельные ячейки или использовать multiplier вверху языковой колонки, чтобы пересчитать все размеры для языка.</p></div></div>
+        <div class="step-box"><span class="step-number">4</span><span class="step-title">Проверяйте примеры</span><div class="step-content"><p>Наведите курсор на значение стиля, чтобы увидеть примеры. Клик по значению закрепляет карточку стиля в правой панели; её можно удалить, когда она больше не нужна.</p></div></div>
+        <div class="step-box"><span class="step-number">5</span><span class="step-title">Скачайте PPTX</span><div class="step-content"><p>Используйте кнопки языков внизу таблицы. В файл попадут ваши размеры, объединения стилей и переведённый текст выбранного языка.</p></div></div>
+
+        <h2>Объединение групп стилей</h2>
+        <p>Иногда PowerPoint создаёт несколько отдельных групп стилей, хотя для подгонки перевода их удобнее считать одним стилем. Такие группы можно объединить, чтобы они использовали один reference-размер.</p>
+        <ul>
+            <li>Отметьте чекбоксами две или больше строк стилей. Рядом с первой выбранной строкой появится плавающая панель.</li>
+            <li>Нажмите <strong>Merge</strong>. Первый выбранный стиль станет reference-стилем, остальные выбранные стили объединятся с ним.</li>
+            <li>Объединённые строки подсвечиваются, а alias-строки показывают <strong>Merged into #...</strong>. При генерации PPTX они используют размеры reference-стиля.</li>
+            <li>Чтобы отменить объединение, выберите reference-строку или alias-строку и нажмите <strong>Unmerge</strong>.</li>
+            <li>Сохраните preset, если хотите потом применить те же размеры и карту объединения стилей.</li>
+        </ul>
+
+        <h2>Presets</h2>
+        <p><strong>Save preset</strong> скачивает JSON с текущими размерами, multipliers и объединениями стилей. <strong>Load preset</strong> применяет его позже к той же или совместимой презентации.</p>
+
+        <h2>Inline markdown</h2>
+        <ul>
+            <li><code>**bold**</code>, <code>*italic*</code> и <code>***both***</code> превращаются обратно в inline-форматирование PowerPoint.</li>
+            <li>Bold/italic из таблицы стилей работает как база, markdown уточняет отдельные фрагменты.</li>
+            <li>Сломанные маркеры дают предупреждение и plain text fallback.</li>
+        </ul>
+    </main>
+
+    <div class="footer">Babel Fish - XLSX to PPTX</div>
+    <script src="help.js"></script>
+</body>
+</html>

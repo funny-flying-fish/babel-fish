@@ -3,23 +3,69 @@
 }
 body {
     font-family: system-ui, -apple-system, sans-serif;
-    max-width: 1100px;
-    margin: 40px auto;
-    padding: 20px;
     background: #000;
     color: #fff;
 }
-body:has(.pptx-layout) {
+body.app-shell {
     max-width: min(1800px, calc(100vw - 32px));
     margin: 24px auto;
+    padding: 20px;
+}
+
+/* Shared header (full content width, above main area) */
+.app-chrome {
+    width: 100%;
+    margin-bottom: 4px;
+}
+.app-chrome .tabs-nav {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #333;
+}
+
+/* Section switcher (Print / Presentations / Utilities) */
+.section-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 4px;
+    background: #111;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    width: fit-content;
+    max-width: 100%;
+}
+.section-nav-btn {
+    background: transparent;
+    color: #888;
+    border: none;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 500;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    font-family: inherit;
+}
+.section-nav-btn:hover {
+    color: #ddd;
+    background: #1a1a1a;
+}
+.section-nav-btn.active {
+    background: #2a2a2a;
+    color: #fff;
+}
+a.section-nav-btn.active {
+    cursor: default;
 }
 
 /* Tabs Navigation */
 .tabs-nav {
     display: flex;
     gap: 4px;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #333;
+    margin-bottom: 0;
+    border-bottom: none;
     padding-bottom: 0;
 }
 .tab-btn {
@@ -53,18 +99,24 @@ body:has(.pptx-layout) {
     display: block;
 }
 .layout {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 320px;
-    gap: 24px;
-    align-items: start;
+    width: 100%;
+}
+.app-layout {
+    display: block;
+    max-width: none;
+    margin: 0;
 }
 .main-column {
     min-width: 0;
+    width: 100%;
 }
 .log-panel {
     min-width: 0;
-    position: sticky;
-    top: 20px;
+}
+.log-panel--below {
+    margin-top: 24px;
+    position: static;
+    width: 100%;
 }
 .section {
     background: #1a1a1a;
@@ -78,6 +130,40 @@ body:has(.pptx-layout) {
     margin: 0 0 15px 0;
     color: #fff;
     font-weight: 600;
+}
+.section-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 15px;
+}
+.section-heading h2 {
+    margin: 0;
+}
+.help-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border-radius: 3px;
+    background: #444;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
+}
+.help-button:hover {
+    background: #555;
+}
+.section--side-panel {
+    padding-right: 440px;
+}
+.section-lead {
+    text-align: left;
+    margin: 0 0 16px;
 }
 .form-row {
     display: flex;
@@ -533,24 +619,6 @@ button:disabled {
     margin-right: 2px;
 }
 
-/* PPTX Converter */
-.pptx-layout {
-    grid-template-columns: 1fr;
-    width: 100%;
-    max-width: none;
-    margin: 0 auto;
-}
-.page-header {
-    margin-bottom: 12px;
-}
-.back-link {
-    color: #4da6ff;
-    text-decoration: none;
-    font-size: 0.9rem;
-}
-.back-link:hover {
-    text-decoration: underline;
-}
 .pptx-dual-dropzones {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -579,11 +647,12 @@ button:disabled {
 }
 
 @media (max-width: 900px) {
-    body {
-        max-width: 720px;
+    body.app-shell {
+        max-width: min(720px, calc(100vw - 24px));
+        padding: 16px;
     }
-    .layout {
-        grid-template-columns: 1fr;
+    .section--side-panel {
+        padding-right: 20px;
     }
     .tabs-nav {
         flex-wrap: wrap;
@@ -592,6 +661,9 @@ button:disabled {
         flex: 1;
         min-width: 120px;
         text-align: center;
+    }
+    .section-heading {
+        align-items: flex-start;
     }
     .pptx-dual-dropzones {
         grid-template-columns: 1fr;

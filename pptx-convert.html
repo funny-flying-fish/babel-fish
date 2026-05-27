@@ -12,24 +12,30 @@
     <link rel="stylesheet" href="main.css">
 </head>
 
-<body>
-    <div class="layout pptx-layout">
+<body class="app-shell">
+    <header class="app-chrome">
+        <nav class="section-nav" aria-label="Product area">
+            <a href="index.html" class="section-nav-btn" data-section="print">Print materials</a>
+            <button type="button" class="section-nav-btn active" data-section="presentations">Presentations</button>
+            <a href="utilities.html" class="section-nav-btn" data-section="utilities">Utilities</a>
+        </nav>
+
+        <nav class="tabs-nav" aria-label="Tools">
+            <button class="tab-btn active" data-tab="prepare-pptx" data-section="presentations">Prepare PPTX</button>
+            <button class="tab-btn" data-tab="xlsx-to-pptx" data-section="presentations">XLSX → PPTX</button>
+        </nav>
+    </header>
+
+    <div class="layout app-layout">
         <div class="main-column">
-            <div class="page-header">
-                <a href="index.html" class="back-link">← Back to main converter</a>
-            </div>
-
-            <nav class="tabs-nav">
-                <button class="tab-btn active" data-tab="prepare-pptx">Prepare PPTX</button>
-                <button class="tab-btn" data-tab="merge-xlsx">Merge XLSX</button>
-                <button class="tab-btn" data-tab="xlsx-to-pptx">XLSX → PPTX</button>
-            </nav>
-
             <!-- Tab 1: Prepare PPTX -->
             <div class="tab-content active" id="tab-prepare-pptx">
-                <div class="section" style="padding-right: 440px;">
-                    <h2>Prepare PPTX</h2>
-                    <p class="note" style="text-align: left; margin: 0 0 16px;">
+                <div class="section section--side-panel">
+                    <div class="section-heading">
+                        <h2>Prepare PPTX</h2>
+                        <a href="help/prepare-pptx.html" class="help-button" target="_blank" rel="noopener">Help</a>
+                    </div>
+                    <p class="note section-lead">
                         Add stable translation IDs to text containers and export an XLSX translation template from the same file.
                     </p>
                     <div class="dropzone" id="pptxMarkupDropzone">
@@ -55,52 +61,19 @@
                     <li>Run again after duplicating slides to normalize copied IDs.</li>
                     <li>Text is extracted by PowerPoint paragraph (<code>a:p</code>), not by visual line wrap.</li>
                     <li>Keys are based on Selection Pane names: <code>shapeName + paragraphIndex</code>.</li>
+                    <li>Inline bold/italic inside one paragraph is exported as markdown: <code>**bold**</code>, <code>*italic*</code>, <code>***both***</code>. Keep the same markers in translation cells.</li>
                     <li>Add translation columns to the XLSX, then use the <strong>XLSX → PPTX</strong> tab to generate localized presentations.</li>
                 </ul>
             </div>
 
-            <!-- Tab 2: Merge XLSX -->
-            <div class="tab-content" id="tab-merge-xlsx">
-                <div class="section" style="padding-right: 440px;">
-                    <h2>Merge XLSX</h2>
-                    <p class="note" style="text-align: left; margin: 0 0 16px;">
-                        Copy translation columns from an old XLSX into a new XLSX when both key and EN text match.
-                    </p>
-                    <div class="pptx-dual-dropzones">
-                        <div class="dropzone" id="mergeNewXlsxDropzone">
-                            <input type="file" id="mergeNewXlsxInput" accept=".xlsx" hidden>
-                            <div class="dropzone-icon">🆕</div>
-                            <div class="dropzone-text">Drop new .xlsx here or <span class="dropzone-link">browse</span></div>
-                            <div class="dropzone-hint">Base file that keeps its keys and EN text</div>
-                            <div class="dropzone-filename" id="mergeNewXlsxFilename"></div>
-                        </div>
-                        <div class="dropzone" id="mergeOldXlsxDropzone">
-                            <input type="file" id="mergeOldXlsxInput" accept=".xlsx" hidden>
-                            <div class="dropzone-icon">🌍</div>
-                            <div class="dropzone-text">Drop old .xlsx here or <span class="dropzone-link">browse</span></div>
-                            <div class="dropzone-hint">Translation columns are copied from this file</div>
-                            <div class="dropzone-filename" id="mergeOldXlsxFilename"></div>
-                        </div>
-                    </div>
-                    <div class="form-row" style="margin-top: 12px;">
-                        <button id="mergeXlsxBtn" disabled>Merge</button>
-                    </div>
-                    <div class="download-area" id="mergeXlsxResult"></div>
-                    <div class="error" id="mergeXlsxError"></div>
-                </div>
-
-                <ul class="note-list">
-                    <li>Requires <code>key</code> and <code>EN</code> columns in both XLSX files.</li>
-                    <li>Language columns from the old XLSX are copied only when <code>key</code> and <code>EN</code> match.</li>
-                    <li>Missing keys or changed <code>EN</code> text receive <code>-</code> in the copied language columns.</li>
-                </ul>
-            </div>
-
-            <!-- Tab 3: XLSX → PPTX -->
+            <!-- Tab 2: XLSX → PPTX -->
             <div class="tab-content" id="tab-xlsx-to-pptx">
-                <div class="section" style="padding-right: 440px;">
-                    <h2>XLSX → PPTX</h2>
-                    <p class="note" style="text-align: left; margin: 0 0 16px;">
+                <div class="section section--side-panel">
+                    <div class="section-heading">
+                        <h2>XLSX → PPTX</h2>
+                        <a href="help/xlsx-to-pptx.html" class="help-button" target="_blank" rel="noopener">Help</a>
+                    </div>
+                    <p class="note section-lead">
                         Inspect font-size/style groups from a marked PPTX, tune sizes per language, and download generated presentations.
                     </p>
                     <div class="pptx-dual-dropzones">
@@ -128,54 +101,27 @@
                     <div class="download-area" id="styleResult"></div>
                     <div class="error" id="styleError"></div>
                 </div>
+
+                <ul class="note-list">
+                    <li>Cells may contain inline markdown (<code>**bold**</code>, <code>*italic*</code>, <code>***both***</code>). Broken markers produce a warning and plain text without formatting.</li>
+                    <li>Style table sizes/colors merge with inline markdown: group bold/italic apply as a base; markdown refines each segment.</li>
+                </ul>
             </div>
         </div>
     </div>
 
-    <footer class="app-footer">
-        <a href="readme-pptx.html" style="color: #555; text-decoration: none; font-size: 0.8rem;">Instructions</a>
-    </footer>
-
+    <script src="app-nav.js"></script>
     <script src="pptx-style-utils.js"></script>
+    <script src="pptx-rich-text.js"></script>
     <script src="pptx-converter.js"></script>
-    <script src="pptx-merge-xlsx.js"></script>
     <script>
-        const tabHashAliases = {
-            'pptx-to-xlsx': 'prepare-pptx',
-            'style-sizes': 'xlsx-to-pptx'
-        };
-
-        function resolveTabName(tabName) {
-            return tabHashAliases[tabName] || tabName;
-        }
-
-        function activateTab(tabName) {
-            const resolved = resolveTabName(tabName);
-            const btn = document.querySelector(`.tab-btn[data-tab="${resolved}"]`);
-            if (!btn) return;
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById('tab-' + resolved).classList.add('active');
-        }
-
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const tabName = btn.dataset.tab;
-                activateTab(tabName);
-                history.replaceState(null, '', '#' + tabName);
-            });
-        });
-
-        const hash = window.location.hash.slice(1);
-        if (hash) {
-            activateTab(hash);
-        }
-
-        window.addEventListener('hashchange', () => {
-            const newHash = window.location.hash.slice(1);
-            if (newHash) {
-                activateTab(newHash);
+        initBabelFishNav({
+            defaultSection: 'presentations',
+            defaultTab: 'prepare-pptx',
+            pageSection: 'presentations',
+            tabHashAliases: {
+                'pptx-to-xlsx': 'prepare-pptx',
+                'style-sizes': 'xlsx-to-pptx'
             }
         });
     </script>

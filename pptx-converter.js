@@ -31,6 +31,7 @@
             noLanguageColumns: 'No language columns found in the XLSX.',
             noEditableStyles: 'No editable text styles found in the PPTX.',
             styleUtilitiesMissing: 'Style utilities are not loaded. Check that pptx-style-utils.js is included before pptx-converter.js.',
+            richTextUtilitiesMissing: 'Rich text utilities are not loaded. Check that pptx-rich-text.js is included before pptx-converter.js.',
             invalidPreset: 'Invalid style preset JSON.'
         }
     };
@@ -181,6 +182,18 @@
         return text;
     }
 
+    function getEncodedParagraphText(paragraph) {
+        const rich = window.PptxRichText;
+        if (rich && typeof rich.encodeParagraph === 'function') {
+            return rich.encodeParagraph(paragraph);
+        }
+        return {
+            text: getTextFromParagraph(paragraph),
+            hadMultipleRuns: false,
+            hadStyledRuns: false
+        };
+    }
+
     function getTextFromRun(run) {
         const tNodes = run.getElementsByTagName('a:t');
         let text = '';
@@ -253,11 +266,15 @@
             const cNvPr = getFirstDescendant(element, 'p:cNvPr');
             const paragraphs = Array.from(element.getElementsByTagName('a:p'));
             const nonEmptyParagraphs = paragraphs
-                .map((paragraph, paragraphIndex) => ({
-                    paragraph,
-                    paragraphIndex,
-                    text: getTextFromParagraph(paragraph)
-                }))
+                .map((paragraph, paragraphIndex) => {
+                    const encoded = getEncodedParagraphText(paragraph);
+                    return {
+                        paragraph,
+                        paragraphIndex,
+                        text: encoded.text,
+                        richMeta: encoded
+                    };
+                })
                 .filter(item => item.text.trim());
 
             if (nonEmptyParagraphs.length === 0) continue;
@@ -342,6 +359,16 @@
         };
     }
 
+    function getPptxBaseName(filename) {
+        return String(filename || '').replace(/\.pptx$/i, '');
+    }
+
+    function getMarkedPptxFilename(filename) {
+        const baseName = getPptxBaseName(filename);
+        if (/_marked$/i.test(baseName)) return `${baseName}.pptx`;
+        return `${baseName}_marked.pptx`;
+    }
+
     function createWorkbookBlob(rows, sheetName = 'Sheet1') {
         const ws = XLSX.utils.aoa_to_sheet(rows);
         const wb = XLSX.utils.book_new();
@@ -380,40 +407,66 @@
         return createWorkbookBlob(rows, 'Warnings');
     }
 
-    function renderResult(target, summaryLines, warnings, reportBaseName) {
+    function appendMessageList(box, messages, limit = 8) {
+        const list = document.createElement('ul');
+        list.style.cssText = 'margin: 6px 0 0 18px;';
+        for (const entry of messages.slice(0, limit)) {
+            const item = document.createElement('li');
+            item.textContent = entry.message;
+            list.appendChild(item);
+        }
+        if (messages.length > limit) {
+            const item = document.createElement('li');
+            item.textContent = `...and ${messages.length - limit} more`;
+            list.appendChild(item);
+        }
+        box.appendChild(list);
+    }
+
+    function renderResult(target, summaryLines, messages, reportBaseName) {
         const info = document.createElement('div');
         info.style.cssText = 'color: #6bbd6b; font-size: 0.85rem; margin-top: 6px;';
         info.innerHTML = summaryLines.map(line => `<div>${line}</div>`).join('');
         target.appendChild(info);
 
-        if (warnings.length === 0) return;
+        if (!messages.length) return;
 
-        const warningBox = document.createElement('div');
-        warningBox.style.cssText = 'color: #e8b64c; font-size: 0.85rem; margin-top: 8px;';
-        warningBox.appendChild(document.createTextNode(`${warnings.length} warning(s):`));
+        const warnings = messages.filter(entry => entry.severity !== 'info');
+        const informational = messages.filter(entry => entry.severity === 'info');
+        const reportHost = document.createElement('div');
+        reportHost.style.marginTop = '8px';
 
-        const list = document.createElement('ul');
-        list.style.cssText = 'margin: 6px 0 0 18px;';
-        for (const warning of warnings.slice(0, 8)) {
-            const item = document.createElement('li');
-            item.textContent = warning.message;
-            list.appendChild(item);
+        if (warnings.length) {
+            const warningBox = document.createElement('div');
+            warningBox.style.cssText = 'color: #e8b64c; font-size: 0.85rem;';
+            warningBox.appendChild(document.createTextNode(`${warnings.length} warning(s):`));
+            appendMessageList(warningBox, warnings);
+            reportHost.appendChild(warningBox);
         }
-        if (warnings.length > 8) {
-            const item = document.createElement('li');
-            item.textContent = `...and ${warnings.length - 8} more`;
-            list.appendChild(item);
-        }
-        warningBox.appendChild(list);
 
-        const reportBlob = createWarningsBlob(warnings);
-        const reportLink = createDownloadLink(reportBlob, `${reportBaseName}_warnings.xlsx`, 'Download warning report');
+        if (informational.length) {
+            const infoBox = document.createElement('div');
+            infoBox.style.cssText = [
+                'color: #9aa0a6',
+                'font-size: 0.85rem',
+                warnings.length ? 'margin-top: 10px' : ''
+            ].filter(Boolean).join('; ');
+            infoBox.appendChild(document.createTextNode(`${informational.length} informational message(s):`));
+            appendMessageList(infoBox, informational);
+            reportHost.appendChild(infoBox);
+        }
+
+        const reportBlob = createWarningsBlob(messages);
+        const reportLink = createDownloadLink(
+            reportBlob,
+            `${reportBaseName}_report.xlsx`,
+            'Download full report'
+        );
         const reportWrap = document.createElement('div');
-        reportWrap.style.marginTop = '6px';
+        reportWrap.style.cssText = 'margin-top: 6px; font-size: 0.85rem;';
         reportWrap.appendChild(reportLink);
-        warningBox.appendChild(reportWrap);
-
-        target.appendChild(warningBox);
+        reportHost.appendChild(reportWrap);
+        target.appendChild(reportHost);
     }
 
     async function markupPptxIds(arrayBuffer) {
@@ -504,8 +557,8 @@
 
             const buffer = await readFileAsArrayBuffer(markupFile);
             const result = await markupPptxIds(buffer);
-            const baseName = markupFile.name.replace(/\.pptx$/i, '');
-            const markedFilename = `${baseName}_marked.pptx`;
+            const baseName = getPptxBaseName(markupFile.name);
+            const markedFilename = getMarkedPptxFilename(markupFile.name);
 
             const markedBuffer = await result.blob.arrayBuffer();
             const lang = sourceLanguage && sourceLanguage.value.trim() ? sourceLanguage.value.trim() : 'EN';
@@ -566,6 +619,16 @@
 
                 for (const item of container.nonEmptyParagraphs) {
                     const keyBase = shapeName || `unmarked_id${container.shapeId || 'unknown'}`;
+                    if (item.richMeta && (item.richMeta.hadMultipleRuns || item.richMeta.hadStyledRuns)) {
+                        warnings.push(createWarning('rich-text-exported', `Slide ${slide.num}: paragraph ${item.paragraphIndex} in "${shapeName || '(unnamed)'}" exported with inline markdown.`, {
+                            severity: 'info',
+                            slideNumber: slide.num,
+                            shapeName,
+                            shapeId: container.shapeId,
+                            containerType: container.containerType,
+                            paragraphIndex: item.paragraphIndex
+                        }));
+                    }
                     rows.push([
                         `${keyBase}__p${item.paragraphIndex}`,
                         item.text
@@ -1392,6 +1455,7 @@
         tableWrap.appendChild(mergeToolbar);
 
         const styleLabelCells = new Map();
+        const usesCells = new Map();
         const updateMergeToolbar = () => {
             const selectedCount = styleState.selectedStyleKeys.length;
             const hasMergeSelection = selectedCount >= 2;
@@ -1410,14 +1474,14 @@
                 : `${selectedCount} selected`;
 
             if (!selectedCount) return;
-            const anchor = styleLabelCells.get(styleState.selectedStyleKeys[0]);
+            const anchor = usesCells.get(styleState.selectedStyleKeys[0])
+                || styleLabelCells.get(styleState.selectedStyleKeys[0]);
             if (!anchor) return;
             const rect = anchor.getBoundingClientRect();
             const toolbarRect = mergeToolbar.getBoundingClientRect();
             const preferredLeft = rect.right + 8;
-            const left = preferredLeft + toolbarRect.width + 12 > window.innerWidth
-                ? Math.max(12, rect.left - toolbarRect.width - 8)
-                : preferredLeft;
+            const maxLeft = Math.max(12, window.innerWidth - toolbarRect.width - 12);
+            const left = Math.max(12, Math.min(preferredLeft, maxLeft));
             const top = Math.min(
                 Math.max(12, rect.top + (rect.height - toolbarRect.height) / 2),
                 window.innerHeight - toolbarRect.height - 12
@@ -1549,7 +1613,10 @@
             const mergeReferenceKey = getMergeReferenceKey(group.styleKey);
             const isReference = !mergeReferenceKey && getMergedAliasKeys(group.styleKey).length > 0;
             const isAlias = Boolean(mergeReferenceKey);
-            if (isReference || isAlias) {
+            if (isReference) {
+                row.style.background = 'rgba(47, 200, 85, 0.34)';
+                row.style.boxShadow = 'inset 4px 0 0 #35d46d';
+            } else if (isAlias) {
                 row.style.background = 'rgba(47, 143, 70, 0.18)';
                 if (isAlias) row.style.opacity = '0.5';
             }
@@ -1618,6 +1685,7 @@
 
             const usesCell = document.createElement('td');
             usesCell.textContent = String(group.count);
+            usesCells.set(group.styleKey, usesCell);
             row.appendChild(usesCell);
 
             tbody.appendChild(row);
@@ -1834,12 +1902,63 @@
         return applied;
     }
 
+    function mergeSegmentTraits(baseTraits, segment) {
+        const traits = { ...(baseTraits || {}) };
+        const baseBold = traits.bold === '1' || traits.bold === true;
+        const baseItalic = traits.italic === '1' || traits.italic === true;
+        const mergedBold = baseBold || Boolean(segment.bold);
+        const mergedItalic = baseItalic || Boolean(segment.italic);
+        traits.bold = mergedBold ? '1' : '0';
+        traits.italic = mergedItalic ? '1' : '0';
+        return traits;
+    }
+
     function replaceParagraphText(paragraph, newText, styleOverride = null) {
         const runs = paragraph.getElementsByTagName('a:r');
-        if (runs.length === 0) return false;
+        if (runs.length === 0) return { success: false, parseWarnings: [] };
 
+        const rich = window.PptxRichText;
+        const baseTraits = styleOverride && styleOverride.traits ? styleOverride.traits : {};
+        const parseWarnings = [];
+
+        if (rich && typeof rich.parseMarkdown === 'function') {
+            const parsed = rich.parseMarkdown(newText);
+
+            for (const warning of parsed.warnings) {
+                parseWarnings.push(warning);
+            }
+
+            if (parsed.usedFallback) {
+                const plainText = rich.unescapePlainText
+                    ? rich.unescapePlainText(parsed.segments[0].text)
+                    : parsed.segments[0].text;
+                return replaceParagraphPlain(paragraph, runs, plainText, styleOverride, parseWarnings);
+            }
+
+            if (rich.shouldUseRichPath(newText, parsed) && typeof rich.applyToParagraph === 'function') {
+                const applied = rich.applyToParagraph(paragraph, parsed.segments, {
+                    templateRun: runs[0],
+                    styleRun: (p, run, segment) => {
+                        const mergedTraits = mergeSegmentTraits(baseTraits, segment);
+                        const override = styleOverride
+                            ? { ...styleOverride, traits: mergedTraits }
+                            : { traits: mergedTraits };
+                        applyParagraphStyleOverride(p, run, override);
+                    }
+                });
+                return { success: applied, parseWarnings };
+            }
+        }
+
+        const plainText = rich && typeof rich.unescapePlainText === 'function'
+            ? rich.unescapePlainText(newText)
+            : newText;
+        return replaceParagraphPlain(paragraph, runs, plainText, styleOverride, parseWarnings);
+    }
+
+    function replaceParagraphPlain(paragraph, runs, newText, styleOverride, parseWarnings = []) {
         const firstRunT = runs[0].getElementsByTagName('a:t')[0];
-        if (!firstRunT) return false;
+        if (!firstRunT) return { success: false, parseWarnings };
 
         firstRunT.textContent = newText;
         firstRunT.setAttribute('xml:space', 'preserve');
@@ -1850,7 +1969,7 @@
         }
 
         applyParagraphStyleOverride(paragraph, runs[0], styleOverride);
-        return true;
+        return { success: true, parseWarnings };
     }
 
     async function injectTranslations(pptxBuffer, translationRows) {
@@ -1925,7 +2044,15 @@
             }
 
             const shouldApplyFont = Number.isFinite(row.fontPt) && row.fontPt > 0;
-            if (!replaceParagraphText(paragraph, row.text, row.styleOverride || (shouldApplyFont ? { fontPt: row.fontPt, traits: { fontPt: row.fontPt } } : null))) {
+            const replaceResult = replaceParagraphText(
+                paragraph,
+                row.text,
+                row.styleOverride || (shouldApplyFont ? { fontPt: row.fontPt, traits: { fontPt: row.fontPt } } : null)
+            );
+            for (const parseWarning of replaceResult.parseWarnings) {
+                warnings.push(createWarning(parseWarning.type || 'invalid-rich-text', `${parseWarning.message} (XLSX row ${row.rowNumber}).`, row));
+            }
+            if (!replaceResult.success) {
                 warnings.push(createWarning('missing-text-run', `XLSX row ${row.rowNumber}: paragraph ${row.paragraphIndex} in "${row.shapeName}" has no editable text run.`, row));
                 continue;
             }
