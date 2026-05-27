@@ -68,14 +68,108 @@
         return value === '1' || value === 'true' ? '1' : '0';
     }
 
-    function getFillColor(element) {
+    function getElementAttr(element, attrName) {
+        return element && element.hasAttribute(attrName) ? element.getAttribute(attrName) || '' : '';
+    }
+
+    function readColorFromClrElement(clrContainer) {
+        if (!clrContainer) return '';
+        const srgbClr = getDirectChild(clrContainer, 'a:srgbClr');
+        if (srgbClr && srgbClr.getAttribute('val')) return `#${srgbClr.getAttribute('val').toUpperCase()}`;
+        const sysClr = getDirectChild(clrContainer, 'a:sysClr');
+        if (sysClr && sysClr.getAttribute('lastClr')) return `#${sysClr.getAttribute('lastClr').toUpperCase()}`;
+        return '';
+    }
+
+    function getDefaultClrMap() {
+        return {
+            bg1: 'lt1',
+            tx1: 'dk1',
+            bg2: 'lt2',
+            tx2: 'dk2',
+            accent1: 'accent1',
+            accent2: 'accent2',
+            accent3: 'accent3',
+            accent4: 'accent4',
+            accent5: 'accent5',
+            accent6: 'accent6',
+            hlink: 'hlink',
+            folHlink: 'folHlink'
+        };
+    }
+
+    async function buildThemeContext(zip, slides) {
+        const clrScheme = {};
+        const themePath = await getRelatedPart(zip, 'ppt/presentation.xml', '/theme');
+        const themeDoc = themePath ? await readXmlPart(zip, themePath) : null;
+        const schemeEl = themeDoc ? getFirstDescendant(themeDoc, 'a:clrScheme') : null;
+
+        if (schemeEl) {
+            for (const child of Array.from(schemeEl.children || [])) {
+                const name = getTagName(child).replace(/^a:/, '');
+                const hex = readColorFromClrElement(child);
+                if (hex) clrScheme[name] = hex;
+            }
+        }
+
+        let clrMap = getDefaultClrMap();
+        if (slides.length) {
+            const layoutPath = await getRelatedPart(zip, slides[0].path, '/slideLayout');
+            const masterPath = layoutPath ? await getRelatedPart(zip, layoutPath, '/slideMaster') : '';
+            const masterDoc = masterPath ? await readXmlPart(zip, masterPath) : null;
+            const clrMapEl = masterDoc ? getFirstDescendant(masterDoc, 'p:clrMap') : null;
+            if (clrMapEl) {
+                const mapped = {};
+                for (const attr of Array.from(clrMapEl.attributes || [])) {
+                    mapped[attr.name] = attr.value;
+                }
+                if (Object.keys(mapped).length) clrMap = mapped;
+            }
+        }
+
+        return {
+            clrScheme,
+            clrMap,
+            resolveSchemeToHex(schemeVal) {
+                const mappedName = clrMap[schemeVal] || schemeVal;
+                return clrScheme[mappedName] || '';
+            }
+        };
+    }
+
+    function getFillColorInfo(element, themeContext = null) {
         const solidFill = getDirectChild(element, 'a:solidFill');
-        if (!solidFill) return '';
+        if (!solidFill) return { color: '', colorHex: '', colorScheme: '' };
+
         const srgbClr = getDirectChild(solidFill, 'a:srgbClr');
-        if (srgbClr && srgbClr.getAttribute('val')) return `#${srgbClr.getAttribute('val')}`;
+        if (srgbClr && srgbClr.getAttribute('val')) {
+            const hex = `#${srgbClr.getAttribute('val').toUpperCase()}`;
+            return { color: hex, colorHex: hex, colorScheme: '' };
+        }
+
         const schemeClr = getDirectChild(solidFill, 'a:schemeClr');
-        if (schemeClr && schemeClr.getAttribute('val')) return `scheme:${schemeClr.getAttribute('val')}`;
-        return 'solidFill';
+        if (schemeClr && schemeClr.getAttribute('val')) {
+            const schemeVal = schemeClr.getAttribute('val');
+            const colorHex = themeContext ? themeContext.resolveSchemeToHex(schemeVal) : '';
+            return {
+                color: `scheme:${schemeVal}`,
+                colorHex,
+                colorScheme: schemeVal
+            };
+        }
+
+        return { color: 'solidFill', colorHex: '', colorScheme: '' };
+    }
+
+    function getFontFamily(element) {
+        if (!element) return '';
+        const latin = getDirectChild(element, 'a:latin');
+        if (latin && latin.getAttribute('typeface')) return latin.getAttribute('typeface') || '';
+        const cs = getDirectChild(element, 'a:cs');
+        if (cs && cs.getAttribute('typeface')) return cs.getAttribute('typeface') || '';
+        const ea = getDirectChild(element, 'a:ea');
+        if (ea && ea.getAttribute('typeface')) return ea.getAttribute('typeface') || '';
+        return '';
     }
 
     function getLineSpacing(paragraph) {
@@ -104,13 +198,18 @@
         return info;
     }
 
-    function getParagraphStyleFingerprint(paragraph, fontInfo) {
+    function getParagraphStyleFingerprint(paragraph, fontInfo, themeContext = null) {
         const run = getFirstTextRun(paragraph);
         const rPr = run ? getDirectChild(run, 'a:rPr') : null;
         const lineSpacing = getLineSpacing(paragraph);
-        const color = getFillColor(rPr);
+        const colorInfo = getFillColorInfo(rPr, themeContext);
+        const color = colorInfo.color;
+        const colorHex = colorInfo.colorHex;
+        const colorScheme = colorInfo.colorScheme;
         const bold = getElementAttrBool(rPr, 'b');
         const italic = getElementAttrBool(rPr, 'i');
+        const caps = getElementAttr(rPr, 'cap');
+        const fontFamily = getFontFamily(rPr);
         const fontPt = fontInfo.fontPt || '';
         const source = fontInfo.fontSource || '';
         const fallback = fontInfo.styleFallbackSource || '';
@@ -121,7 +220,9 @@
             `line=${lineSpacing}`,
             `color=${color}`,
             `b=${bold}`,
-            `i=${italic}`
+            `i=${italic}`,
+            `cap=${caps}`,
+            `font=${fontFamily}`
         ];
         const labelParts = [
             fontPt ? `${fontPt} pt` : 'unknown pt',
@@ -131,7 +232,19 @@
         return {
             styleKey: parts.join('|'),
             styleLabel: labelParts.join(' | '),
-            styleTraits: { fontPt, source, fallback, lineSpacing, color, bold, italic }
+            styleTraits: {
+                fontPt,
+                source,
+                fallback,
+                lineSpacing,
+                color,
+                colorHex,
+                colorScheme,
+                bold,
+                italic,
+                caps,
+                fontFamily
+            }
         };
     }
 
@@ -300,7 +413,8 @@
             slideRels: new Map(),
             layoutDocs: new Map(),
             masterStyles: new Map(),
-            presentationDefaultStyle: null
+            presentationDefaultStyle: null,
+            themeContext: await buildThemeContext(zip, slides)
         };
 
         const presentationDoc = await readXmlPart(zip, 'ppt/presentation.xml');
@@ -429,7 +543,7 @@
                 const keyBase = shapeName || `unmarked_id${container.shapeId || 'unknown'}`;
                 for (const item of container.nonEmptyParagraphs) {
                     const fontInfo = getParagraphFontInfo(item.paragraph, container, styleContext);
-                    const styleInfo = getParagraphStyleFingerprint(item.paragraph, fontInfo);
+                    const styleInfo = getParagraphStyleFingerprint(item.paragraph, fontInfo, styleContext.themeContext);
                     styleRows.push({
                         key: `${keyBase}__p${item.paragraphIndex}`,
                         slideNumber: slide.num,

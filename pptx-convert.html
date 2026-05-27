@@ -20,18 +20,17 @@
             </div>
 
             <nav class="tabs-nav">
-                <button class="tab-btn active" data-tab="prepare-pptx">Prepare PPTX IDs</button>
-                <button class="tab-btn" data-tab="pptx-to-xlsx">PPTX → XLSX</button>
-                <button class="tab-btn" data-tab="style-sizes">Translations -> PPTX</button>
+                <button class="tab-btn active" data-tab="prepare-pptx">Prepare PPTX</button>
                 <button class="tab-btn" data-tab="merge-xlsx">Merge XLSX</button>
+                <button class="tab-btn" data-tab="xlsx-to-pptx">XLSX → PPTX</button>
             </nav>
 
-            <!-- Tab 0: Prepare / Markup PPTX -->
+            <!-- Tab 1: Prepare PPTX -->
             <div class="tab-content active" id="tab-prepare-pptx">
                 <div class="section" style="padding-right: 440px;">
-                    <h2>Prepare PPTX IDs</h2>
+                    <h2>Prepare PPTX</h2>
                     <p class="note" style="text-align: left; margin: 0 0 16px;">
-                        Add stable translation IDs to text containers. PowerPoint will show these IDs in the Selection Pane.
+                        Add stable translation IDs to text containers and export an XLSX translation template from the same file.
                     </p>
                     <div class="dropzone" id="pptxMarkupDropzone">
                         <input type="file" id="pptxMarkupInput" accept=".pptx" hidden>
@@ -41,7 +40,9 @@
                         <div class="dropzone-filename" id="pptxMarkupFilename"></div>
                     </div>
                     <div class="form-row" style="margin-top: 12px;">
-                        <button id="markupBtn" disabled>Prepare PPTX IDs</button>
+                        <label for="sourceLanguage">Source language:</label>
+                        <input type="text" id="sourceLanguage" class="lang-input" value="EN" placeholder="e.g. EN">
+                        <button id="markupBtn" disabled>Prepare PPTX</button>
                     </div>
                     <div class="download-area" id="markupDownload"></div>
                     <div class="error" id="markupError"></div>
@@ -49,79 +50,16 @@
 
                 <ul class="note-list">
                     <li>Run this once before exporting text for translation.</li>
-                    <li>Text containers get names like <code>tr_7f3a91_body</code>.</li>
+                    <li>Text containers get names like <code>tr_7f3a91_body</code> (visible in the Selection Pane).</li>
                     <li>Existing valid translation IDs are preserved; duplicates are repaired.</li>
                     <li>Run again after duplicating slides to normalize copied IDs.</li>
-                </ul>
-            </div>
-
-            <!-- Tab 1: PPTX → XLSX -->
-            <div class="tab-content" id="tab-pptx-to-xlsx">
-                <div class="section" style="padding-right: 440px;">
-                    <h2>PPTX → XLSX</h2>
-                    <p class="note" style="text-align: left; margin: 0 0 16px;">
-                        Extract text from a marked PowerPoint file into an XLSX translation template.
-                    </p>
-                    <div class="dropzone" id="pptxExtractDropzone">
-                        <input type="file" id="pptxExtractInput" accept=".pptx" hidden>
-                        <div class="dropzone-icon">📊</div>
-                        <div class="dropzone-text">Drop .pptx file here or <span class="dropzone-link">browse</span></div>
-                        <div class="dropzone-hint">Single file</div>
-                        <div class="dropzone-filename" id="pptxExtractFilename"></div>
-                    </div>
-                    <div class="form-row" style="margin-top: 12px;">
-                        <label for="sourceLanguage">Source language:</label>
-                        <input type="text" id="sourceLanguage" class="lang-input" value="EN" placeholder="e.g. EN">
-                        <button id="extractBtn" disabled>Extract text</button>
-                    </div>
-                    <div class="download-area" id="extractDownload"></div>
-                    <div class="error" id="extractError"></div>
-                </div>
-
-                <ul class="note-list">
                     <li>Text is extracted by PowerPoint paragraph (<code>a:p</code>), not by visual line wrap.</li>
                     <li>Keys are based on Selection Pane names: <code>shapeName + paragraphIndex</code>.</li>
-                    <li>Tables and other <code>graphicFrame</code> text are included when stored as editable DrawingML text.</li>
-                    <li>Empty paragraphs are skipped.</li>
-                    <li>Add translation columns to the XLSX, then use the Translations -> PPTX tab to generate localized presentations.</li>
+                    <li>Add translation columns to the XLSX, then use the <strong>XLSX → PPTX</strong> tab to generate localized presentations.</li>
                 </ul>
             </div>
 
-            <!-- Tab 2: Translations -> PPTX -->
-            <div class="tab-content" id="tab-style-sizes">
-                <div class="section" style="padding-right: 440px;">
-                    <h2>Translations -> PPTX</h2>
-                    <p class="note" style="text-align: left; margin: 0 0 16px;">
-                        Inspect font-size/style groups from a marked PPTX, tune sizes per language, and download generated presentations.
-                    </p>
-                    <div class="pptx-dual-dropzones">
-                        <div class="dropzone" id="stylePptxDropzone">
-                            <input type="file" id="stylePptxInput" accept=".pptx" hidden>
-                            <div class="dropzone-icon">📊</div>
-                            <div class="dropzone-text">Drop marked .pptx here or <span class="dropzone-link">browse</span></div>
-                            <div class="dropzone-hint">Template used to inspect and generate presentations</div>
-                            <div class="dropzone-filename" id="stylePptxFilename"></div>
-                        </div>
-                        <div class="dropzone" id="styleXlsxDropzone">
-                            <input type="file" id="styleXlsxInput" accept=".xlsx" hidden>
-                            <div class="dropzone-icon">🌍</div>
-                            <div class="dropzone-text">Drop translation .xlsx here or <span class="dropzone-link">browse</span></div>
-                            <div class="dropzone-hint">Language columns are used to build the table</div>
-                            <div class="dropzone-filename" id="styleXlsxFilename"></div>
-                        </div>
-                    </div>
-                    <div id="styleTableArea" style="margin-top: 16px;"></div>
-                    <div class="form-row" style="margin-top: 12px;">
-                        <button id="styleSavePresetBtn" disabled>Save preset</button>
-                        <button id="styleLoadPresetBtn">Load preset</button>
-                        <input type="file" id="stylePresetInput" accept=".json,application/json" hidden>
-                    </div>
-                    <div class="download-area" id="styleResult"></div>
-                    <div class="error" id="styleError"></div>
-                </div>
-            </div>
-
-            <!-- Tab 3: Merge XLSX -->
+            <!-- Tab 2: Merge XLSX -->
             <div class="tab-content" id="tab-merge-xlsx">
                 <div class="section" style="padding-right: 440px;">
                     <h2>Merge XLSX</h2>
@@ -157,6 +95,40 @@
                     <li>Missing keys or changed <code>EN</code> text receive <code>-</code> in the copied language columns.</li>
                 </ul>
             </div>
+
+            <!-- Tab 3: XLSX → PPTX -->
+            <div class="tab-content" id="tab-xlsx-to-pptx">
+                <div class="section" style="padding-right: 440px;">
+                    <h2>XLSX → PPTX</h2>
+                    <p class="note" style="text-align: left; margin: 0 0 16px;">
+                        Inspect font-size/style groups from a marked PPTX, tune sizes per language, and download generated presentations.
+                    </p>
+                    <div class="pptx-dual-dropzones">
+                        <div class="dropzone" id="stylePptxDropzone">
+                            <input type="file" id="stylePptxInput" accept=".pptx" hidden>
+                            <div class="dropzone-icon">📊</div>
+                            <div class="dropzone-text">Drop marked .pptx here or <span class="dropzone-link">browse</span></div>
+                            <div class="dropzone-hint">Template used to inspect and generate presentations</div>
+                            <div class="dropzone-filename" id="stylePptxFilename"></div>
+                        </div>
+                        <div class="dropzone" id="styleXlsxDropzone">
+                            <input type="file" id="styleXlsxInput" accept=".xlsx" hidden>
+                            <div class="dropzone-icon">🌍</div>
+                            <div class="dropzone-text">Drop translation .xlsx here or <span class="dropzone-link">browse</span></div>
+                            <div class="dropzone-hint">Language columns are used to build the table</div>
+                            <div class="dropzone-filename" id="styleXlsxFilename"></div>
+                        </div>
+                    </div>
+                    <div id="styleTableArea" style="margin-top: 16px;"></div>
+                    <div class="form-row" style="margin-top: 12px;">
+                        <button id="styleSavePresetBtn" disabled>Save preset</button>
+                        <button id="styleLoadPresetBtn">Load preset</button>
+                        <input type="file" id="stylePresetInput" accept=".json,application/json" hidden>
+                    </div>
+                    <div class="download-area" id="styleResult"></div>
+                    <div class="error" id="styleError"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -168,20 +140,23 @@
     <script src="pptx-converter.js"></script>
     <script src="pptx-merge-xlsx.js"></script>
     <script>
-        const tabTitles = {
-            'prepare-pptx': 'Prepare PPTX IDs',
-            'pptx-to-xlsx': 'PPTX → XLSX',
-            'style-sizes': 'Translations -> PPTX',
-            'merge-xlsx': 'Merge XLSX'
+        const tabHashAliases = {
+            'pptx-to-xlsx': 'prepare-pptx',
+            'style-sizes': 'xlsx-to-pptx'
         };
 
+        function resolveTabName(tabName) {
+            return tabHashAliases[tabName] || tabName;
+        }
+
         function activateTab(tabName) {
-            const btn = document.querySelector(`.tab-btn[data-tab="${tabName}"]`);
+            const resolved = resolveTabName(tabName);
+            const btn = document.querySelector(`.tab-btn[data-tab="${resolved}"]`);
             if (!btn) return;
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             btn.classList.add('active');
-            document.getElementById('tab-' + tabName).classList.add('active');
+            document.getElementById('tab-' + resolved).classList.add('active');
         }
 
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -193,13 +168,13 @@
         });
 
         const hash = window.location.hash.slice(1);
-        if (hash && document.querySelector(`.tab-btn[data-tab="${hash}"]`)) {
+        if (hash) {
             activateTab(hash);
         }
 
         window.addEventListener('hashchange', () => {
             const newHash = window.location.hash.slice(1);
-            if (newHash && document.querySelector(`.tab-btn[data-tab="${newHash}"]`)) {
+            if (newHash) {
                 activateTab(newHash);
             }
         });

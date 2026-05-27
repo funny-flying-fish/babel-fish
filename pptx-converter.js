@@ -7,14 +7,17 @@
     const TRANSLATION_NAME_RE = /^tr_[a-f0-9]{6,12}_[a-z][a-z0-9]*$/i;
     const TRANSLATIONS_TO_PPTX_CONFIG_URL = 'pptx-translations-pptx.json';
     const DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG = {
+        defaultLanguage: 'EN',
         preset: {
-            version: 1,
+            version: 2,
             type: 'pptx-style-size-preset',
             fileSuffix: '_style-preset.json'
         },
         labels: {
             selectedStylesTitle: 'Selected styles',
             emptySelectedStyles: 'Click a style name in the table to add it here.',
+            mergeStyles: 'Merge',
+            unmergeStyles: 'Unmerge',
             slides: 'Slides',
             slide: 'Slide',
             sizeColorHeader: 'Size / color',
@@ -24,7 +27,7 @@
         },
         messages: {
             loadPptxFirst: 'Load a marked PPTX file first.',
-            loadXlsxFirst: 'Load an XLSX file with language columns to build the table.',
+            loadXlsxForExport: 'Load an XLSX file to enable export for additional languages.',
             noLanguageColumns: 'No language columns found in the XLSX.',
             noEditableStyles: 'No editable text styles found in the PPTX.',
             styleUtilitiesMissing: 'Style utilities are not loaded. Check that pptx-style-utils.js is included before pptx-converter.js.',
@@ -40,14 +43,7 @@
     const markupDownload = document.getElementById('markupDownload');
     const markupError = document.getElementById('markupError');
 
-    // DOM refs: PPTX -> XLSX
-    const pptxExtractDropzone = document.getElementById('pptxExtractDropzone');
-    const pptxExtractInput = document.getElementById('pptxExtractInput');
-    const pptxExtractFilename = document.getElementById('pptxExtractFilename');
     const sourceLanguage = document.getElementById('sourceLanguage');
-    const extractBtn = document.getElementById('extractBtn');
-    const extractDownload = document.getElementById('extractDownload');
-    const extractError = document.getElementById('extractError');
 
     // DOM refs: Style controls / per-language PPTX generation
     const stylePptxDropzone = document.getElementById('stylePptxDropzone');
@@ -65,7 +61,6 @@
     const styleError = document.getElementById('styleError');
 
     let markupFile = null;
-    let extractFile = null;
     let stylePptxBuffer = null;
     let stylePptxName = '';
     let styleTranslationData = null;
@@ -122,6 +117,7 @@
         return {
             ...DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG,
             ...safeConfig,
+            defaultLanguage: safeConfig.defaultLanguage || DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG.defaultLanguage,
             preset: {
                 ...DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG.preset,
                 ...(safeConfig.preset || {})
@@ -500,6 +496,8 @@
 
         if (!markupFile) return;
 
+        const prepareLabel = 'Prepare PPTX';
+
         try {
             markupBtn.disabled = true;
             markupBtn.textContent = 'Preparing...';
@@ -507,18 +505,30 @@
             const buffer = await readFileAsArrayBuffer(markupFile);
             const result = await markupPptxIds(buffer);
             const baseName = markupFile.name.replace(/\.pptx$/i, '');
-            const filename = `${baseName}_marked.pptx`;
+            const markedFilename = `${baseName}_marked.pptx`;
 
-            markupDownload.appendChild(createDownloadLink(result.blob, filename));
+            const markedBuffer = await result.blob.arrayBuffer();
+            const lang = sourceLanguage && sourceLanguage.value.trim() ? sourceLanguage.value.trim() : 'EN';
+            const extractResult = await extractTextFromPptx(markedBuffer, lang);
+            const xlsxBlob = createWorkbookBlob(extractResult.rows, 'Translations');
+
+            const downloadsWrap = document.createElement('div');
+            downloadsWrap.style.cssText = 'display: flex; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 4px;';
+            downloadsWrap.appendChild(createDownloadLink(result.blob, markedFilename, `Download ${markedFilename}`));
+            downloadsWrap.appendChild(createDownloadLink(xlsxBlob, `${baseName}.xlsx`, `Download ${baseName}.xlsx`));
+            markupDownload.appendChild(downloadsWrap);
+
+            const allWarnings = [...result.warnings, ...extractResult.warnings];
             renderResult(markupDownload, [
                 `Marked ${result.renamedCount} of ${result.containerCount} text containers.`,
-                `Kept ${result.keptCount} existing translation IDs.`
-            ], result.warnings, `${baseName}_markup`);
+                `Kept ${result.keptCount} existing translation IDs.`,
+                `Extracted ${extractResult.rows.length - 1} paragraph entries for ${lang}.`
+            ], allWarnings, `${baseName}_prepare`);
         } catch (err) {
             markupError.textContent = 'Error: ' + err.message;
         } finally {
             markupBtn.disabled = false;
-            markupBtn.textContent = 'Prepare PPTX IDs';
+            markupBtn.textContent = prepareLabel;
         }
     }
 
@@ -546,7 +556,7 @@
                 }
 
                 if (!isTranslationName(shapeName)) {
-                    warnings.push(createWarning('unmarked-shape', `Slide ${slide.num}: "${shapeName || '(unnamed)'}" is not a translation ID. Run Prepare PPTX IDs first.`, {
+                    warnings.push(createWarning('unmarked-shape', `Slide ${slide.num}: "${shapeName || '(unnamed)'}" is not a translation ID. Run Prepare PPTX first.`, {
                         slideNumber: slide.num,
                         shapeName,
                         shapeId: container.shapeId,
@@ -566,41 +576,13 @@
 
         for (const [shapeName, count] of nameCounts.entries()) {
             if (count > 1) {
-                warnings.push(createWarning('duplicate-shape-name', `Duplicate shapeName "${shapeName}" found ${count} times. Run Prepare PPTX IDs to normalize duplicates.`, {
+                warnings.push(createWarning('duplicate-shape-name', `Duplicate shapeName "${shapeName}" found ${count} times. Run Prepare PPTX to normalize duplicates.`, {
                     shapeName
                 }));
             }
         }
 
         return { rows, warnings, containerCount };
-    }
-
-    async function handleExtract() {
-        extractError.textContent = '';
-        extractDownload.innerHTML = '';
-
-        if (!extractFile) return;
-
-        try {
-            extractBtn.disabled = true;
-            extractBtn.textContent = 'Extracting...';
-
-            const buffer = await readFileAsArrayBuffer(extractFile);
-            const lang = sourceLanguage.value.trim() || 'EN';
-            const { rows, warnings, containerCount } = await extractTextFromPptx(buffer, lang);
-
-            const baseName = extractFile.name.replace(/\.pptx$/i, '');
-            const blob = createWorkbookBlob(rows, 'Translations');
-            extractDownload.appendChild(createDownloadLink(blob, `${baseName}.xlsx`));
-            renderResult(extractDownload, [
-                `Extracted ${rows.length - 1} paragraph entries from ${containerCount} text containers.`
-            ], warnings, `${baseName}_extract`);
-        } catch (err) {
-            extractError.textContent = 'Error: ' + err.message;
-        } finally {
-            extractBtn.disabled = false;
-            extractBtn.textContent = 'Extract text';
-        }
     }
 
     function parseXlsxFile(file) {
@@ -643,6 +625,17 @@
             if (isLanguageColumn(code)) languages.push({ code, index: i });
         }
         return languages;
+    }
+
+    function getStyleLanguages(xlsxData) {
+        if (xlsxData && xlsxData.length) {
+            const header = xlsxData[0].map(value => String(value || '').trim());
+            const languages = getLanguageColumns(header);
+            if (languages.length) return languages;
+            return [];
+        }
+        const defaultLanguage = translationsToPptxConfig.defaultLanguage || DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG.defaultLanguage;
+        return [{ code: defaultLanguage, index: null }];
     }
 
     function getRowIdentity(row, headerIndex) {
@@ -715,15 +708,18 @@
     }
 
     function buildStyleState(styleRows, xlsxData = null) {
-        const header = xlsxData && xlsxData.length ? xlsxData[0].map(value => String(value || '').trim()) : [];
-        const languages = header.length ? getLanguageColumns(header) : [];
+        const languages = getStyleLanguages(xlsxData);
+        const groups = buildStyleGroups(styleRows);
         return {
             styleRows,
             styleRowsByKey: new Map(styleRows.map(row => [row.key, row])),
-            groups: buildStyleGroups(styleRows),
+            groups,
+            groupsByKey: new Map(groups.map(group => [group.styleKey, group])),
             languages,
             sizeInputs: new Map(),
-            multiplierSelects: new Map()
+            multiplierSelects: new Map(),
+            selectedStyleKeys: [],
+            styleAliases: new Map()
         };
     }
 
@@ -745,6 +741,98 @@
         return input ? parseNumber(input.value) : '';
     }
 
+    function resolveStyleKey(styleKey) {
+        if (!styleState || !styleKey) return styleKey;
+        let resolvedKey = styleKey;
+        const seen = new Set();
+        while (styleState.styleAliases.has(resolvedKey) && !seen.has(resolvedKey)) {
+            seen.add(resolvedKey);
+            resolvedKey = styleState.styleAliases.get(resolvedKey);
+        }
+        return resolvedKey;
+    }
+
+    function getMergeReferenceKey(styleKey) {
+        const resolvedKey = resolveStyleKey(styleKey);
+        return resolvedKey && resolvedKey !== styleKey ? resolvedKey : '';
+    }
+
+    function getMergedAliasKeys(referenceKey) {
+        if (!styleState || !referenceKey) return [];
+        return Array.from(styleState.styleAliases.entries())
+            .filter(([, targetKey]) => resolveStyleKey(targetKey) === referenceKey)
+            .map(([aliasKey]) => aliasKey);
+    }
+
+    function setSelectedStyleKey(styleKey, checked) {
+        if (!styleState) return;
+        const selected = styleState.selectedStyleKeys.filter(key => key !== styleKey);
+        if (checked) selected.push(styleKey);
+        styleState.selectedStyleKeys = selected;
+    }
+
+    function mergeSelectedStyles() {
+        if (!styleState || styleState.selectedStyleKeys.length < 2) return;
+        const currentPreset = createStylePreset();
+        const referenceKey = resolveStyleKey(styleState.selectedStyleKeys[0]);
+        for (const styleKey of styleState.selectedStyleKeys.slice(1)) {
+            const aliasKey = resolveStyleKey(styleKey) === referenceKey ? styleKey : resolveStyleKey(styleKey);
+            if (aliasKey && aliasKey !== referenceKey) styleState.styleAliases.set(aliasKey, referenceKey);
+        }
+        styleState.selectedStyleKeys = [];
+        if (currentPreset) currentPreset.styleAliases = styleAliasesToObject();
+        renderStyleControls();
+        if (currentPreset) applyStylePresetValues(currentPreset);
+    }
+
+    function unmergeSelectedStyles() {
+        if (!styleState || !styleState.selectedStyleKeys.length) return;
+        const currentPreset = createStylePreset();
+        for (const styleKey of styleState.selectedStyleKeys) {
+            styleState.styleAliases.delete(styleKey);
+            for (const aliasKey of getMergedAliasKeys(styleKey)) {
+                styleState.styleAliases.delete(aliasKey);
+            }
+        }
+        styleState.selectedStyleKeys = [];
+        if (currentPreset) currentPreset.styleAliases = styleAliasesToObject();
+        renderStyleControls();
+        if (currentPreset) applyStylePresetValues(currentPreset);
+    }
+
+    function normalizeStyleAliases(aliases = {}) {
+        const result = new Map();
+        if (!styleState || !aliases || typeof aliases !== 'object') return result;
+        for (const [aliasKey, referenceKey] of Object.entries(aliases)) {
+            if (!styleState.groupsByKey.has(aliasKey) || !styleState.groupsByKey.has(referenceKey)) continue;
+            if (aliasKey !== referenceKey) result.set(aliasKey, referenceKey);
+        }
+        return result;
+    }
+
+    function styleAliasesToObject() {
+        if (!styleState) return {};
+        return Object.fromEntries(styleState.styleAliases.entries());
+    }
+
+    function getStyleOverrideForLanguage(languageCode, styleKey, fallbackFontPt = '') {
+        if (!styleState || !styleKey) return null;
+        const resolvedKey = resolveStyleKey(styleKey);
+        const group = styleState.groupsByKey.get(resolvedKey);
+        if (!group) return null;
+        const example = group.examples[0] || {};
+        const traits = { ...(example.traits || {}) };
+        const groupFontPt = getStyleSizeForLanguage(languageCode, resolvedKey);
+        const fontPt = groupFontPt || parseNumber(traits.fontPt) || fallbackFontPt || '';
+        if (fontPt) traits.fontPt = fontPt;
+        return {
+            styleKey,
+            resolvedStyleKey: resolvedKey,
+            traits,
+            fontPt
+        };
+    }
+
     function getStyleMultiplierForLanguage(languageCode) {
         const select = styleState && styleState.multiplierSelects.get(languageCode);
         return select ? (parseNumber(select.value) || 100) / 100 : 1;
@@ -752,7 +840,41 @@
 
     function updateStylePresetButton() {
         if (!styleSavePresetBtn) return;
-        styleSavePresetBtn.disabled = !(styleState && stylePptxBuffer && styleTranslationData && styleState.languages.length);
+        styleSavePresetBtn.disabled = !(styleState && stylePptxBuffer && styleState.languages.length);
+    }
+
+    function captureStyleUiState() {
+        if (!styleState) return null;
+        const snapshot = {
+            styleAliases: styleAliasesToObject(),
+            selectedStyleKeys: [...styleState.selectedStyleKeys],
+            languages: {}
+        };
+        for (const language of styleState.languages) {
+            const languageInputs = styleState.sizeInputs.get(language.code);
+            if (!languageInputs) continue;
+            snapshot.languages[language.code] = {};
+            for (const [styleKey, input] of languageInputs.entries()) {
+                snapshot.languages[language.code][styleKey] = input.value;
+            }
+        }
+        return snapshot;
+    }
+
+    function restoreStyleUiState(snapshot) {
+        if (!snapshot || !styleState) return;
+        styleState.styleAliases = normalizeStyleAliases(snapshot.styleAliases || {});
+        styleState.selectedStyleKeys = (snapshot.selectedStyleKeys || [])
+            .filter(styleKey => styleState.groupsByKey.has(styleKey));
+        for (const language of styleState.languages) {
+            const savedSizes = snapshot.languages[language.code];
+            const languageInputs = styleState.sizeInputs.get(language.code);
+            if (!savedSizes || !languageInputs) continue;
+            for (const [styleKey, value] of Object.entries(savedSizes)) {
+                const input = languageInputs.get(styleKey);
+                if (input) input.value = value;
+            }
+        }
     }
 
     function recalculateStyleInputsForLanguage(languageCode) {
@@ -787,6 +909,7 @@
         return {
             version: translationsToPptxConfig.preset.version,
             type: translationsToPptxConfig.preset.type,
+            styleAliases: styleAliasesToObject(),
             languages
         };
     }
@@ -800,13 +923,14 @@
     }
 
     function validateStylePreset(value) {
-        if (!value || value.type !== translationsToPptxConfig.preset.type || value.version !== translationsToPptxConfig.preset.version || typeof value.languages !== 'object') {
+        const supportedVersions = [1, translationsToPptxConfig.preset.version];
+        if (!value || value.type !== translationsToPptxConfig.preset.type || !supportedVersions.includes(value.version) || typeof value.languages !== 'object') {
             throw new Error(translationsToPptxMessage('invalidPreset'));
         }
         return value;
     }
 
-    function applyStylePreset(preset) {
+    function applyStylePresetValues(preset) {
         pendingStylePreset = preset;
         if (!styleState || !styleState.languages.length || !styleState.sizeInputs.size) return;
 
@@ -832,6 +956,14 @@
         }
     }
 
+    function applyStylePreset(preset) {
+        pendingStylePreset = preset;
+        if (!styleState) return;
+        styleState.styleAliases = normalizeStyleAliases(preset.styleAliases || {});
+        renderStyleControls();
+        applyStylePresetValues(preset);
+    }
+
     async function loadStylePreset(file) {
         const text = await readFileAsText(file);
         const preset = validateStylePreset(JSON.parse(text));
@@ -852,10 +984,44 @@
         const css = [];
         if (traits.fontPt) css.push(`font-size: ${traits.fontPt}pt`);
         if (traits.color && /^#[0-9a-f]{6}$/i.test(traits.color)) css.push(`color: ${traits.color}`);
+        else if (traits.colorHex && /^#[0-9a-f]{6}$/i.test(traits.colorHex)) css.push(`color: ${traits.colorHex}`);
         if (traits.bold === '1') css.push('font-weight: 700');
         if (traits.italic === '1') css.push('font-style: italic');
+        if (traits.caps === 'all') css.push('text-transform: uppercase');
         if (traits.lineSpacing) css.push(`line-height: ${traits.lineSpacing}`);
         return css.join('; ');
+    }
+
+    function getGroupTraits(group) {
+        return group.examples[0] ? group.examples[0].traits || {} : {};
+    }
+
+    function formatFontStyles(traits = {}) {
+        const fontStyles = [];
+        if (traits.italic === '1') fontStyles.push('Italic');
+        if (traits.caps === 'all') fontStyles.push('Uppercase');
+        if (traits.caps === 'small') fontStyles.push('Small caps');
+        return fontStyles.join(', ');
+    }
+
+    function formatColorDisplay(traits = {}) {
+        const raw = traits.color ? String(traits.color).replace(/^color\s+/i, '') : '';
+        const hex = traits.colorHex ? String(traits.colorHex).toUpperCase() : '';
+        if (raw.startsWith('scheme:') && hex) return `${raw} (${hex})`;
+        if (hex && /^#[0-9a-f]{6}$/i.test(hex)) return hex;
+        return raw;
+    }
+
+    function getStyleTableValues(group) {
+        const traits = getGroupTraits(group);
+        return {
+            size: traits.fontPt ? String(traits.fontPt) : '',
+            weight: traits.bold === '1' ? 'Bold' : '',
+            color: formatColorDisplay(traits),
+            lineHeight: traits.lineSpacing ? String(traits.lineSpacing) : '',
+            style: formatFontStyles(traits),
+            font: traits.fontFamily ? String(traits.fontFamily) : ''
+        };
     }
 
     function getContrastingColor(hexColor) {
@@ -870,7 +1036,10 @@
 
     function getPreviewBackground(group) {
         const firstColor = (group.examples || [])
-            .map(example => example.traits && example.traits.color)
+            .map(example => {
+                const traits = example.traits || {};
+                return traits.colorHex || traits.color;
+            })
             .find(color => /^#[0-9a-f]{6}$/i.test(color || ''));
         return firstColor ? getContrastingColor(firstColor) : '#ffffff';
     }
@@ -886,7 +1055,12 @@
         if (traits.fontPt) details.push(`Size: ${traits.fontPt}`);
         if (traits.bold === '1') details.push('Weight: Bold');
         if (traits.italic === '1') details.push('Style: Italic');
+        if (traits.caps === 'all') details.push('Style: Uppercase');
+        if (traits.caps === 'small') details.push('Style: Small caps');
         if (traits.lineSpacing) details.push(`line-height: ${traits.lineSpacing}`);
+        const colorDetail = formatColorDisplay(traits);
+        if (colorDetail) details.push(`Color: ${colorDetail}`);
+        if (traits.fontFamily) details.push(`Font: ${traits.fontFamily}`);
         const slides = group ? formatSlideNumbers(group.slideNumbers) : '';
         if (slides) details.push(slides);
         if (traits.source) details.push(`Source: ${traits.source}`);
@@ -955,12 +1129,7 @@
         return card;
     }
 
-    function createStylePreviewLabel(group, styleNumber, onSelect) {
-        const label = document.createElement('button');
-        label.type = 'button';
-        label.textContent = group.styleLabel;
-        label.style.cssText = 'background: none; border: 0; color: inherit; padding: 0; text-align: left; cursor: pointer; text-decoration: underline dotted;';
-
+    function buildStylePreviewPopup(group, styleNumber) {
         const popup = document.createElement('div');
         const popupBackground = getPreviewBackground(group);
         const popupTextColor = getReadableTextColor(popupBackground);
@@ -991,32 +1160,78 @@
         }
 
         for (const example of group.examples) appendStyleExample(popup, example, popupBackground);
-
         document.body.appendChild(popup);
-        const show = () => {
-            const rect = label.getBoundingClientRect();
-            popup.style.display = 'block';
-            const popupRect = popup.getBoundingClientRect();
-            const preferredLeft = rect.right + 10;
-            const left = preferredLeft + popupRect.width + 12 > window.innerWidth
-                ? Math.max(12, rect.left - popupRect.width - 10)
-                : preferredLeft;
-            const top = rect.top + popupRect.height + 12 > window.innerHeight
-                ? Math.max(12, window.innerHeight - popupRect.height - 12)
-                : rect.top;
-            popup.style.left = `${Math.max(12, left)}px`;
-            popup.style.top = `${top}px`;
+
+        let hideTimer = null;
+        const cancelHide = () => {
+            if (hideTimer) {
+                clearTimeout(hideTimer);
+                hideTimer = null;
+            }
         };
-        const hide = () => { popup.style.display = 'none'; };
-        label.addEventListener('mouseenter', show);
-        label.addEventListener('mouseleave', hide);
-        label.addEventListener('focus', show);
-        label.addEventListener('blur', hide);
+        const scheduleHide = () => {
+            cancelHide();
+            hideTimer = setTimeout(() => {
+                popup.style.display = 'none';
+                hideTimer = null;
+            }, 120);
+        };
+
+        popup.addEventListener('mouseenter', cancelHide);
+        popup.addEventListener('mouseleave', scheduleHide);
+
+        return {
+            show(trigger) {
+                if (!trigger) return;
+                cancelHide();
+                const rect = trigger.getBoundingClientRect();
+                popup.style.display = 'block';
+                const popupRect = popup.getBoundingClientRect();
+                const preferredLeft = rect.right + 10;
+                const left = preferredLeft + popupRect.width + 12 > window.innerWidth
+                    ? Math.max(12, rect.left - popupRect.width - 10)
+                    : preferredLeft;
+                const top = rect.top + popupRect.height + 12 > window.innerHeight
+                    ? Math.max(12, window.innerHeight - popupRect.height - 12)
+                    : rect.top;
+                popup.style.left = `${Math.max(12, left)}px`;
+                popup.style.top = `${top}px`;
+            },
+            hide: scheduleHide,
+            cancelHide,
+            destroy() {
+                cancelHide();
+                popup.remove();
+            }
+        };
+    }
+
+    function createStylePreviewButton(labelText, popupApi, onSelect) {
+        const label = document.createElement('button');
+        label.type = 'button';
+        label.textContent = labelText;
+        label.style.cssText = 'background: none; border: 0; color: inherit; padding: 0; text-align: left; cursor: pointer; text-decoration: underline dotted; white-space: nowrap;';
+        label.addEventListener('mouseenter', () => popupApi.show(label));
+        label.addEventListener('mouseleave', popupApi.hide);
+        label.addEventListener('focus', () => {
+            popupApi.cancelHide();
+            popupApi.show(label);
+        });
+        label.addEventListener('blur', popupApi.hide);
         label.addEventListener('click', (e) => {
             e.preventDefault();
-            onSelect(group, styleNumber);
+            onSelect();
         });
         return label;
+    }
+
+    function createStylePreviewLabel(group, styleNumber, onSelect, labelText = '') {
+        const popupApi = buildStylePreviewPopup(group, styleNumber);
+        return createStylePreviewButton(
+            labelText || group.styleLabel || `#${styleNumber}`,
+            popupApi,
+            () => onSelect(group, styleNumber)
+        );
     }
 
     function buildStyleGenerationRows(data, language, options = {}) {
@@ -1042,10 +1257,14 @@
             const key = String(getOptionalCell(sourceRow, headerIndex, 'key') || '').trim();
             const parsedKey = parseTranslationKey(key);
             const styleRow = options.styleRowsByKey ? options.styleRowsByKey.get(key) : null;
-            const groupFontPt = styleRow ? getStyleSizeForLanguage(language.code, styleRow.styleKey) : '';
             const fallbackFontPt = fontColumnIndex === undefined ? '' : parseNumber(sourceRow[fontColumnIndex]);
-            const baseFontPt = groupFontPt || fallbackFontPt || '';
+            const styleOverride = styleRow
+                ? getStyleOverrideForLanguage(language.code, styleRow.styleKey, fallbackFontPt)
+                : null;
+            const baseFontPt = styleOverride ? styleOverride.fontPt : fallbackFontPt || '';
             const fontPt = baseFontPt ? roundToHalf(baseFontPt) : '';
+            if (styleOverride && fontPt) styleOverride.fontPt = fontPt;
+            if (styleOverride && fontPt) styleOverride.traits.fontPt = fontPt;
 
             rows.push({
                 rowNumber: r + 1,
@@ -1058,7 +1277,8 @@
                 text: String(value),
                 fontPt,
                 fontRaw: fontPt ? String(fontPt) : '',
-                fontColumn: fontColumnIndex === undefined ? 'style table' : fontColumn
+                fontColumn: fontColumnIndex === undefined ? 'style table' : fontColumn,
+                styleOverride
             });
         }
 
@@ -1085,7 +1305,7 @@
             if (styleResult) {
                 renderResult(styleResult, [
                     `Generated ${language.code}: replaced ${result.replacedCount} of ${rows.length} translated paragraph entries.`,
-                    `Applied ${result.fontSizeAppliedCount} style-table font size value(s).`,
+                    `Applied ${result.fontSizeAppliedCount} style override value(s).`,
                     `Skipped ${skippedEmpty} empty translation cells.`
                 ], result.warnings, `${baseName}_${language.code}`);
             }
@@ -1106,11 +1326,6 @@
             return;
         }
 
-        if (!styleTranslationData) {
-            styleTableArea.textContent = translationsToPptxMessage('loadXlsxFirst');
-            return;
-        }
-
         if (!styleState || !styleState.languages.length) {
             styleTableArea.textContent = translationsToPptxMessage('noLanguageColumns');
             return;
@@ -1128,6 +1343,88 @@
 
         const tableWrap = document.createElement('div');
         tableWrap.style.cssText = 'overflow-x: auto; flex: 1 1 auto; min-width: 0;';
+
+        if (!styleTranslationData) {
+            const xlsxHint = document.createElement('div');
+            xlsxHint.textContent = translationsToPptxMessage('loadXlsxForExport');
+            xlsxHint.style.cssText = 'font-size: 0.85rem; opacity: 0.7; margin-bottom: 8px;';
+            tableWrap.appendChild(xlsxHint);
+        }
+
+        const mergeToolbar = document.createElement('div');
+        mergeToolbar.style.cssText = [
+            'display: none',
+            'position: fixed',
+            'z-index: 10000',
+            'align-items: center',
+            'gap: 8px',
+            'padding: 6px',
+            'border: 1px solid rgba(255,255,255,0.18)',
+            'border-radius: 8px',
+            'background: rgba(20,20,20,0.92)',
+            'box-shadow: 0 8px 24px rgba(0,0,0,0.28)'
+        ].join('; ');
+
+        const mergeButton = document.createElement('button');
+        mergeButton.type = 'button';
+        mergeButton.textContent = translationsToPptxLabel('mergeStyles');
+        mergeButton.style.cssText = 'padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); background: #2f8f46; color: #fff; font-weight: 600; cursor: pointer;';
+        mergeButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            mergeSelectedStyles();
+        });
+
+        const unmergeButton = document.createElement('button');
+        unmergeButton.type = 'button';
+        unmergeButton.textContent = translationsToPptxLabel('unmergeStyles');
+        unmergeButton.style.cssText = 'padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.25); background: transparent; color: inherit; font-weight: 600; cursor: pointer;';
+        unmergeButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            unmergeSelectedStyles();
+        });
+
+        const mergeHint = document.createElement('span');
+        mergeHint.style.cssText = 'font-size: 0.8rem; opacity: 0.7;';
+
+        mergeToolbar.appendChild(mergeButton);
+        mergeToolbar.appendChild(unmergeButton);
+        mergeToolbar.appendChild(mergeHint);
+        tableWrap.appendChild(mergeToolbar);
+
+        const styleLabelCells = new Map();
+        const updateMergeToolbar = () => {
+            const selectedCount = styleState.selectedStyleKeys.length;
+            const hasMergeSelection = selectedCount >= 2;
+            const hasUnmergeSelection = styleState.selectedStyleKeys.some(key =>
+                styleState.styleAliases.has(key) || getMergedAliasKeys(key).length
+            );
+            mergeToolbar.style.display = selectedCount ? 'flex' : 'none';
+            mergeButton.style.display = hasMergeSelection ? 'inline-flex' : 'none';
+            unmergeButton.style.display = hasUnmergeSelection ? 'inline-flex' : 'none';
+            const referenceKey = selectedCount ? resolveStyleKey(styleState.selectedStyleKeys[0]) : '';
+            const referenceIndex = referenceKey
+                ? styleState.groups.findIndex(group => group.styleKey === referenceKey) + 1
+                : 0;
+            mergeHint.textContent = hasMergeSelection && referenceIndex
+                ? `Reference: #${referenceIndex}`
+                : `${selectedCount} selected`;
+
+            if (!selectedCount) return;
+            const anchor = styleLabelCells.get(styleState.selectedStyleKeys[0]);
+            if (!anchor) return;
+            const rect = anchor.getBoundingClientRect();
+            const toolbarRect = mergeToolbar.getBoundingClientRect();
+            const preferredLeft = rect.right + 8;
+            const left = preferredLeft + toolbarRect.width + 12 > window.innerWidth
+                ? Math.max(12, rect.left - toolbarRect.width - 8)
+                : preferredLeft;
+            const top = Math.min(
+                Math.max(12, rect.top + (rect.height - toolbarRect.height) / 2),
+                window.innerHeight - toolbarRect.height - 12
+            );
+            mergeToolbar.style.left = `${left}px`;
+            mergeToolbar.style.top = `${top}px`;
+        };
 
         const sidePanel = document.createElement('div');
         sidePanel.style.cssText = [
@@ -1212,21 +1509,34 @@
             styleState.sizeInputs.set(language.code, new Map());
         }
 
-        const styleHead = document.createElement('th');
-        styleHead.textContent = translationsToPptxLabel('sizeColorHeader');
+        const styleHeads = ['Size', 'Weight', 'Color', 'Line-height', 'Style', 'Font'];
+
+        const selectHead = document.createElement('th');
+        selectHead.textContent = '';
 
         const usesHead = document.createElement('th');
         usesHead.textContent = translationsToPptxLabel('usesHeader');
+        for (const heading of styleHeads) {
+            const styleHead = document.createElement('th');
+            styleHead.textContent = heading;
+            languageRow.appendChild(styleHead);
+        }
+        languageRow.appendChild(selectHead);
         languageRow.appendChild(usesHead);
-        languageRow.appendChild(styleHead);
+
+        for (let i = 0; i < styleHeads.length; i++) {
+            const styleBlank = document.createElement('th');
+            styleBlank.textContent = '';
+            multiplierRow.appendChild(styleBlank);
+        }
+
+        const selectBlank = document.createElement('th');
+        selectBlank.textContent = '';
+        multiplierRow.appendChild(selectBlank);
 
         const usesBlank = document.createElement('th');
         usesBlank.textContent = '';
         multiplierRow.appendChild(usesBlank);
-
-        const multiplierHead = document.createElement('th');
-        multiplierHead.textContent = translationsToPptxLabel('multiplierHeader');
-        multiplierRow.appendChild(multiplierHead);
 
         thead.appendChild(languageRow);
         thead.appendChild(multiplierRow);
@@ -1236,6 +1546,13 @@
         for (const [index, group] of styleState.groups.entries()) {
             const styleNumber = index + 1;
             const row = document.createElement('tr');
+            const mergeReferenceKey = getMergeReferenceKey(group.styleKey);
+            const isReference = !mergeReferenceKey && getMergedAliasKeys(group.styleKey).length > 0;
+            const isAlias = Boolean(mergeReferenceKey);
+            if (isReference || isAlias) {
+                row.style.background = 'rgba(47, 143, 70, 0.18)';
+                if (isAlias) row.style.opacity = '0.5';
+            }
 
             const numberCell = document.createElement('td');
             numberCell.textContent = String(styleNumber);
@@ -1256,20 +1573,58 @@
                 row.appendChild(cell);
             }
 
+            const styleValues = getStyleTableValues(group);
+            const styleFields = [
+                styleValues.size,
+                styleValues.weight,
+                styleValues.color,
+                styleValues.lineHeight,
+                styleValues.style,
+                styleValues.font
+            ];
+            const popupApi = buildStylePreviewPopup(group, styleNumber);
+            const openStyleCard = () => addStyleCard(group, styleNumber);
+
+            for (const [fieldIndex, value] of styleFields.entries()) {
+                const labelCell = document.createElement('td');
+                labelCell.style.position = 'relative';
+                labelCell.appendChild(createStylePreviewButton(value || '-', popupApi, openStyleCard));
+                if (fieldIndex === 0) {
+                    styleLabelCells.set(group.styleKey, labelCell);
+                    if (isAlias) {
+                        const reference = document.createElement('div');
+                        reference.textContent = `Merged into #${styleState.groups.findIndex(item => item.styleKey === mergeReferenceKey) + 1}`;
+                        reference.style.cssText = 'font-size: 0.75rem; opacity: 0.75; margin-top: 3px;';
+                        labelCell.appendChild(reference);
+                    }
+                }
+                row.appendChild(labelCell);
+            }
+
+            const selectCell = document.createElement('td');
+            selectCell.style.cssText = 'text-align: center;';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = styleState.selectedStyleKeys.includes(group.styleKey);
+            checkbox.title = isAlias
+                ? `Merged into #${styleState.groups.findIndex(item => item.styleKey === mergeReferenceKey) + 1}`
+                : '';
+            checkbox.addEventListener('change', () => {
+                setSelectedStyleKey(group.styleKey, checkbox.checked);
+                updateMergeToolbar();
+            });
+            selectCell.appendChild(checkbox);
+            row.appendChild(selectCell);
+
             const usesCell = document.createElement('td');
             usesCell.textContent = String(group.count);
             row.appendChild(usesCell);
-
-            const labelCell = document.createElement('td');
-            labelCell.style.position = 'relative';
-            labelCell.appendChild(createStylePreviewLabel(group, styleNumber, addStyleCard));
-            row.appendChild(labelCell);
 
             tbody.appendChild(row);
         }
         table.appendChild(tbody);
 
-        if (styleState.languages.length) {
+        if (styleState.languages.length && styleTranslationData && styleState.languages.some(language => language.index !== null)) {
             const tfoot = document.createElement('tfoot');
             const footerRow = document.createElement('tr');
 
@@ -1292,19 +1647,30 @@
                 footerRow.appendChild(cell);
             }
 
-            const labelCell = document.createElement('td');
-            labelCell.textContent = '';
-            footerRow.appendChild(labelCell);
-
             const styleCell = document.createElement('td');
             styleCell.textContent = translationsToPptxLabel('downloadFooter');
             footerRow.appendChild(styleCell);
+
+            for (let i = 1; i < styleHeads.length; i++) {
+                const blankStyleCell = document.createElement('td');
+                blankStyleCell.textContent = '';
+                footerRow.appendChild(blankStyleCell);
+            }
+
+            const selectCell = document.createElement('td');
+            selectCell.textContent = '';
+            footerRow.appendChild(selectCell);
+
+            const usesCell = document.createElement('td');
+            usesCell.textContent = '';
+            footerRow.appendChild(usesCell);
 
             tfoot.appendChild(footerRow);
             table.appendChild(tfoot);
         }
 
         tableWrap.appendChild(table);
+        updateMergeToolbar();
         layout.appendChild(tableWrap);
         layout.appendChild(sidePanel);
         styleTableArea.appendChild(layout);
@@ -1320,10 +1686,17 @@
         if (!window.PptxStyleUtils || typeof window.PptxStyleUtils.extractStyleRowsFromPptx !== 'function') {
             throw new Error(translationsToPptxMessage('styleUtilitiesMissing'));
         }
+        const uiSnapshot = captureStyleUiState();
         const styleRows = await window.PptxStyleUtils.extractStyleRowsFromPptx(stylePptxBuffer.slice(0));
         styleState = buildStyleState(styleRows, styleTranslationData);
+        if (uiSnapshot) {
+            styleState.styleAliases = normalizeStyleAliases(uiSnapshot.styleAliases || {});
+            styleState.selectedStyleKeys = (uiSnapshot.selectedStyleKeys || [])
+                .filter(styleKey => styleState.groupsByKey.has(styleKey));
+        }
         renderStyleControls();
-        if (pendingStylePreset) applyStylePreset(pendingStylePreset);
+        if (uiSnapshot) restoreStyleUiState(uiSnapshot);
+        if (pendingStylePreset) applyStylePresetValues(pendingStylePreset);
         updateStylePresetButton();
     }
 
@@ -1340,20 +1713,128 @@
         return child;
     }
 
-    function applyParagraphFontSize(paragraph, run, fontPt) {
-        if (!Number.isFinite(fontPt) || fontPt <= 0) return false;
+    function removeDirectChildren(element, tagName) {
+        for (const child of Array.from(element.children || [])) {
+            if (getTagName(child) === tagName) element.removeChild(child);
+        }
+    }
 
-        const sz = String(Math.round(fontPt * 100));
-        const firstChild = run.firstElementChild || run.firstChild;
-        const rPr = ensureDirectChild(run, 'a:rPr', A_NS, firstChild);
-        rPr.setAttribute('sz', sz);
+    function setRunBooleanAttr(rPr, attrName, value) {
+        if (value === '1' || value === true) {
+            rPr.setAttribute(attrName, '1');
+        } else if (value === '0' || value === false || value === '') {
+            rPr.setAttribute(attrName, '0');
+        }
+    }
 
-        const endParaRPr = ensureDirectChild(paragraph, 'a:endParaRPr', A_NS);
-        endParaRPr.setAttribute('sz', sz);
+    function applyRunColor(rPr, color) {
+        const value = String(color || '').replace('#', '');
+        if (!/^[0-9a-f]{6}$/i.test(value)) return false;
+
+        removeDirectChildren(rPr, 'a:solidFill');
+        const solidFill = rPr.ownerDocument.createElementNS(A_NS, 'a:solidFill');
+        const srgbClr = rPr.ownerDocument.createElementNS(A_NS, 'a:srgbClr');
+        srgbClr.setAttribute('val', value.toUpperCase());
+        solidFill.appendChild(srgbClr);
+        rPr.appendChild(solidFill);
         return true;
     }
 
-    function replaceParagraphText(paragraph, newText, fontPt = null) {
+    function applyRunSchemeColor(rPr, schemeVal) {
+        const value = String(schemeVal || '').trim();
+        if (!value) return false;
+
+        removeDirectChildren(rPr, 'a:solidFill');
+        const solidFill = rPr.ownerDocument.createElementNS(A_NS, 'a:solidFill');
+        const schemeClr = rPr.ownerDocument.createElementNS(A_NS, 'a:schemeClr');
+        schemeClr.setAttribute('val', value);
+        solidFill.appendChild(schemeClr);
+        rPr.appendChild(solidFill);
+        return true;
+    }
+
+    function applyRunFillColor(rPr, traits = {}) {
+        const scheme = traits.colorScheme
+            || (String(traits.color || '').startsWith('scheme:') ? String(traits.color).slice(7) : '');
+        if (scheme) return applyRunSchemeColor(rPr, scheme);
+
+        const hex = traits.colorHex || traits.color;
+        return applyRunColor(rPr, hex);
+    }
+
+    function applyRunFontFamily(rPr, fontFamily) {
+        const typeface = String(fontFamily || '').trim();
+        if (!typeface) return false;
+
+        for (const tagName of ['a:latin', 'a:cs', 'a:ea']) {
+            const fontEl = ensureDirectChild(rPr, tagName, A_NS);
+            fontEl.setAttribute('typeface', typeface);
+        }
+        return true;
+    }
+
+    function applyParagraphLineSpacing(paragraph, lineSpacing) {
+        const value = String(lineSpacing || '').trim();
+        if (!value) return false;
+
+        const percentMatch = value.match(/^([\d.]+)%$/);
+        const pointMatch = value.match(/^([\d.]+)pt$/i);
+        if (!percentMatch && !pointMatch) return false;
+
+        const pPr = ensureDirectChild(paragraph, 'a:pPr', A_NS, paragraph.firstElementChild || paragraph.firstChild);
+        removeDirectChildren(pPr, 'a:lnSpc');
+
+        const lnSpc = paragraph.ownerDocument.createElementNS(A_NS, 'a:lnSpc');
+        if (percentMatch) {
+            const percent = parseNumber(percentMatch[1]);
+            if (!percent) return false;
+            const spcPct = paragraph.ownerDocument.createElementNS(A_NS, 'a:spcPct');
+            spcPct.setAttribute('val', String(Math.round(percent * 1000)));
+            lnSpc.appendChild(spcPct);
+        } else {
+            const points = parseNumber(pointMatch[1]);
+            if (!points) return false;
+            const spcPts = paragraph.ownerDocument.createElementNS(A_NS, 'a:spcPts');
+            spcPts.setAttribute('val', String(Math.round(points * 100)));
+            lnSpc.appendChild(spcPts);
+        }
+
+        pPr.appendChild(lnSpc);
+        return true;
+    }
+
+    function applyParagraphStyleOverride(paragraph, run, styleOverride = null) {
+        const traits = styleOverride && styleOverride.traits ? styleOverride.traits : {};
+        const fontPt = styleOverride ? styleOverride.fontPt : null;
+        let applied = false;
+
+        const firstChild = run.firstElementChild || run.firstChild;
+        const rPr = ensureDirectChild(run, 'a:rPr', A_NS, firstChild);
+
+        if (Number.isFinite(fontPt) && fontPt > 0) {
+            const sz = String(Math.round(fontPt * 100));
+            rPr.setAttribute('sz', sz);
+
+            const endParaRPr = ensureDirectChild(paragraph, 'a:endParaRPr', A_NS);
+            endParaRPr.setAttribute('sz', sz);
+            applied = true;
+        }
+
+        setRunBooleanAttr(rPr, 'b', traits.bold);
+        setRunBooleanAttr(rPr, 'i', traits.italic);
+        if (traits.bold !== undefined || traits.italic !== undefined) applied = true;
+        if (traits.caps) {
+            rPr.setAttribute('cap', traits.caps);
+            applied = true;
+        }
+        if (applyRunFillColor(rPr, traits)) applied = true;
+        if (applyRunFontFamily(rPr, traits.fontFamily)) applied = true;
+        if (applyParagraphLineSpacing(paragraph, traits.lineSpacing)) applied = true;
+
+        return applied;
+    }
+
+    function replaceParagraphText(paragraph, newText, styleOverride = null) {
         const runs = paragraph.getElementsByTagName('a:r');
         if (runs.length === 0) return false;
 
@@ -1368,7 +1849,7 @@
             if (t) t.textContent = '';
         }
 
-        applyParagraphFontSize(paragraph, runs[0], fontPt);
+        applyParagraphStyleOverride(paragraph, runs[0], styleOverride);
         return true;
     }
 
@@ -1444,12 +1925,12 @@
             }
 
             const shouldApplyFont = Number.isFinite(row.fontPt) && row.fontPt > 0;
-            if (!replaceParagraphText(paragraph, row.text, shouldApplyFont ? row.fontPt : null)) {
+            if (!replaceParagraphText(paragraph, row.text, row.styleOverride || (shouldApplyFont ? { fontPt: row.fontPt, traits: { fontPt: row.fontPt } } : null))) {
                 warnings.push(createWarning('missing-text-run', `XLSX row ${row.rowNumber}: paragraph ${row.paragraphIndex} in "${row.shapeName}" has no editable text run.`, row));
                 continue;
             }
 
-            if (shouldApplyFont) fontSizeAppliedCount++;
+            if (row.styleOverride || shouldApplyFont) fontSizeAppliedCount++;
             slideDocs.get(container.slidePath).modified = true;
             replacedCount++;
         }
@@ -1516,16 +1997,6 @@
         });
 
         if (markupBtn) markupBtn.addEventListener('click', handleMarkup);
-
-        setupSingleDropzone(pptxExtractDropzone, pptxExtractInput, pptxExtractFilename, '.pptx', (file) => {
-            extractFile = file;
-            showFilename(pptxExtractFilename, file.name);
-            extractBtn.disabled = false;
-            extractDownload.innerHTML = '';
-            extractError.textContent = '';
-        });
-
-        extractBtn.addEventListener('click', handleExtract);
 
         setupSingleDropzone(stylePptxDropzone, stylePptxInput, stylePptxFilename, '.pptx', async (file) => {
             stylePptxName = file.name;

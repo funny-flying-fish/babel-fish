@@ -1,13 +1,16 @@
 {
   "featureId": "translations-to-pptx",
+  "defaultLanguage": "EN",
   "preset": {
-    "version": 1,
+    "version": 2,
     "type": "pptx-style-size-preset",
     "fileSuffix": "_style-preset.json"
   },
   "labels": {
     "selectedStylesTitle": "Selected styles",
     "emptySelectedStyles": "Click a style name in the table to add it here.",
+    "mergeStyles": "Merge",
+    "unmergeStyles": "Unmerge",
     "slides": "Slides",
     "slide": "Slide",
     "sizeColorHeader": "Size / color",
@@ -17,7 +20,7 @@
   },
   "messages": {
     "loadPptxFirst": "Load a marked PPTX file first.",
-    "loadXlsxFirst": "Load an XLSX file with language columns to build the table.",
+    "loadXlsxForExport": "Load an XLSX file to enable export for additional languages.",
     "noLanguageColumns": "No language columns found in the XLSX.",
     "noEditableStyles": "No editable text styles found in the PPTX.",
     "styleUtilitiesMissing": "Style utilities are not loaded. Check that pptx-style-utils.js is included before pptx-converter.js.",
