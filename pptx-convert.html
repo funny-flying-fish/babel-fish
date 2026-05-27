@@ -23,6 +23,7 @@
                 <button class="tab-btn active" data-tab="prepare-pptx">Prepare PPTX IDs</button>
                 <button class="tab-btn" data-tab="pptx-to-xlsx">PPTX → XLSX</button>
                 <button class="tab-btn" data-tab="style-sizes">Translations -> PPTX</button>
+                <button class="tab-btn" data-tab="merge-xlsx">Merge XLSX</button>
             </nav>
 
             <!-- Tab 0: Prepare / Markup PPTX -->
@@ -119,6 +120,43 @@
                     <div class="error" id="styleError"></div>
                 </div>
             </div>
+
+            <!-- Tab 3: Merge XLSX -->
+            <div class="tab-content" id="tab-merge-xlsx">
+                <div class="section" style="padding-right: 440px;">
+                    <h2>Merge XLSX</h2>
+                    <p class="note" style="text-align: left; margin: 0 0 16px;">
+                        Copy translation columns from an old XLSX into a new XLSX when both key and EN text match.
+                    </p>
+                    <div class="pptx-dual-dropzones">
+                        <div class="dropzone" id="mergeNewXlsxDropzone">
+                            <input type="file" id="mergeNewXlsxInput" accept=".xlsx" hidden>
+                            <div class="dropzone-icon">🆕</div>
+                            <div class="dropzone-text">Drop new .xlsx here or <span class="dropzone-link">browse</span></div>
+                            <div class="dropzone-hint">Base file that keeps its keys and EN text</div>
+                            <div class="dropzone-filename" id="mergeNewXlsxFilename"></div>
+                        </div>
+                        <div class="dropzone" id="mergeOldXlsxDropzone">
+                            <input type="file" id="mergeOldXlsxInput" accept=".xlsx" hidden>
+                            <div class="dropzone-icon">🌍</div>
+                            <div class="dropzone-text">Drop old .xlsx here or <span class="dropzone-link">browse</span></div>
+                            <div class="dropzone-hint">Translation columns are copied from this file</div>
+                            <div class="dropzone-filename" id="mergeOldXlsxFilename"></div>
+                        </div>
+                    </div>
+                    <div class="form-row" style="margin-top: 12px;">
+                        <button id="mergeXlsxBtn" disabled>Merge</button>
+                    </div>
+                    <div class="download-area" id="mergeXlsxResult"></div>
+                    <div class="error" id="mergeXlsxError"></div>
+                </div>
+
+                <ul class="note-list">
+                    <li>Requires <code>key</code> and <code>EN</code> columns in both XLSX files.</li>
+                    <li>Language columns from the old XLSX are copied only when <code>key</code> and <code>EN</code> match.</li>
+                    <li>Missing keys or changed <code>EN</code> text receive <code>-</code> in the copied language columns.</li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -128,11 +166,13 @@
 
     <script src="pptx-style-utils.js"></script>
     <script src="pptx-converter.js"></script>
+    <script src="pptx-merge-xlsx.js"></script>
     <script>
         const tabTitles = {
             'prepare-pptx': 'Prepare PPTX IDs',
             'pptx-to-xlsx': 'PPTX → XLSX',
-            'style-sizes': 'Translations -> PPTX'
+            'style-sizes': 'Translations -> PPTX',
+            'merge-xlsx': 'Merge XLSX'
         };
 
         function activateTab(tabName) {

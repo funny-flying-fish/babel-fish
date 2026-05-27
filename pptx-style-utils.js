@@ -432,6 +432,7 @@
                     const styleInfo = getParagraphStyleFingerprint(item.paragraph, fontInfo);
                     styleRows.push({
                         key: `${keyBase}__p${item.paragraphIndex}`,
+                        slideNumber: slide.num,
                         shapeName,
                         paragraphIndex: item.paragraphIndex,
                         textSample: item.text,

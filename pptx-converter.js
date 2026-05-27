@@ -5,6 +5,32 @@
     const STYLE_METRIC_SUFFIXES = ['chars', 'fontPt', 'fontRef', 'fontSource', 'styleFallbackSource', 'styleKey', 'styleLabel', 'densityRatio', 'fontScale'];
     const A_NS = 'http://schemas.openxmlformats.org/drawingml/2006/main';
     const TRANSLATION_NAME_RE = /^tr_[a-f0-9]{6,12}_[a-z][a-z0-9]*$/i;
+    const TRANSLATIONS_TO_PPTX_CONFIG_URL = 'pptx-translations-pptx.json';
+    const DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG = {
+        preset: {
+            version: 1,
+            type: 'pptx-style-size-preset',
+            fileSuffix: '_style-preset.json'
+        },
+        labels: {
+            selectedStylesTitle: 'Selected styles',
+            emptySelectedStyles: 'Click a style name in the table to add it here.',
+            slides: 'Slides',
+            slide: 'Slide',
+            sizeColorHeader: 'Size / color',
+            usesHeader: 'Uses',
+            multiplierHeader: 'Multiplier',
+            downloadFooter: 'Download'
+        },
+        messages: {
+            loadPptxFirst: 'Load a marked PPTX file first.',
+            loadXlsxFirst: 'Load an XLSX file with language columns to build the table.',
+            noLanguageColumns: 'No language columns found in the XLSX.',
+            noEditableStyles: 'No editable text styles found in the PPTX.',
+            styleUtilitiesMissing: 'Style utilities are not loaded. Check that pptx-style-utils.js is included before pptx-converter.js.',
+            invalidPreset: 'Invalid style preset JSON.'
+        }
+    };
 
     // DOM refs: Prepare / Markup PPTX
     const pptxMarkupDropzone = document.getElementById('pptxMarkupDropzone');
@@ -45,6 +71,7 @@
     let styleTranslationData = null;
     let styleState = null;
     let pendingStylePreset = null;
+    let translationsToPptxConfig = DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG;
 
     function triggerBlobDownload(blob, filename) {
         const url = URL.createObjectURL(blob);
@@ -88,6 +115,44 @@
             reader.onerror = reject;
             reader.readAsText(file);
         });
+    }
+
+    function mergeTranslationsToPptxConfig(config) {
+        const safeConfig = config && typeof config === 'object' ? config : {};
+        return {
+            ...DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG,
+            ...safeConfig,
+            preset: {
+                ...DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG.preset,
+                ...(safeConfig.preset || {})
+            },
+            labels: {
+                ...DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG.labels,
+                ...(safeConfig.labels || {})
+            },
+            messages: {
+                ...DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG.messages,
+                ...(safeConfig.messages || {})
+            }
+        };
+    }
+
+    async function loadTranslationsToPptxConfig() {
+        try {
+            const response = await fetch(TRANSLATIONS_TO_PPTX_CONFIG_URL, { cache: 'no-store' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            translationsToPptxConfig = mergeTranslationsToPptxConfig(await response.json());
+        } catch (err) {
+            translationsToPptxConfig = DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG;
+        }
+    }
+
+    function translationsToPptxLabel(key) {
+        return translationsToPptxConfig.labels[key] || DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG.labels[key] || key;
+    }
+
+    function translationsToPptxMessage(key) {
+        return translationsToPptxConfig.messages[key] || DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG.messages[key] || key;
     }
 
     function getSlideEntries(zip) {
@@ -622,20 +687,26 @@
                     styleLabel: row.styleLabel,
                     fontPt: row.fontPt,
                     count: 0,
+                    slideNumbers: new Set(),
                     examples: []
                 });
             }
             const group = groupsByKey.get(row.styleKey);
             group.count++;
+            if (row.slideNumber) group.slideNumbers.add(String(row.slideNumber));
             if (group.examples.length < 3) {
                 group.examples.push({
                     text: row.textSample,
+                    slideNumber: row.slideNumber ? String(row.slideNumber) : '',
                     traits: row.styleTraits || {}
                 });
             }
         }
 
-        return Array.from(groupsByKey.values()).sort((a, b) => {
+        return Array.from(groupsByKey.values()).map(group => ({
+            ...group,
+            slideNumbers: Array.from(group.slideNumbers).sort((a, b) => (parseNumber(a) || 0) - (parseNumber(b) || 0))
+        })).sort((a, b) => {
             const aPt = parseNumber(a.fontPt) || 0;
             const bPt = parseNumber(b.fontPt) || 0;
             if (aPt !== bPt) return aPt - bPt;
@@ -714,8 +785,8 @@
         }
 
         return {
-            version: 1,
-            type: 'pptx-style-size-preset',
+            version: translationsToPptxConfig.preset.version,
+            type: translationsToPptxConfig.preset.type,
             languages
         };
     }
@@ -725,12 +796,12 @@
         if (!preset) return;
         const blob = new Blob([JSON.stringify(preset, null, 2)], { type: 'application/json' });
         const baseName = stylePptxName ? stylePptxName.replace(/\.pptx$/i, '') : 'pptx';
-        triggerBlobDownload(blob, `${baseName}_style-preset.json`);
+        triggerBlobDownload(blob, `${baseName}${translationsToPptxConfig.preset.fileSuffix}`);
     }
 
     function validateStylePreset(value) {
-        if (!value || value.type !== 'pptx-style-size-preset' || value.version !== 1 || typeof value.languages !== 'object') {
-            throw new Error('Invalid style preset JSON.');
+        if (!value || value.type !== translationsToPptxConfig.preset.type || value.version !== translationsToPptxConfig.preset.version || typeof value.languages !== 'object') {
+            throw new Error(translationsToPptxMessage('invalidPreset'));
         }
         return value;
     }
@@ -804,15 +875,40 @@
         return firstColor ? getContrastingColor(firstColor) : '#ffffff';
     }
 
-    function formatStyleDetails(traits = {}) {
+    function formatSlideNumbers(slideNumbers = []) {
+        const numbers = Array.from(new Set(slideNumbers.filter(Boolean)));
+        if (!numbers.length) return '';
+        return `${translationsToPptxLabel('slides')}: ${numbers.join(', ')}`;
+    }
+
+    function formatStyleDetails(traits = {}, group = null) {
         const details = [];
         if (traits.fontPt) details.push(`Size: ${traits.fontPt}`);
         if (traits.bold === '1') details.push('Weight: Bold');
         if (traits.italic === '1') details.push('Style: Italic');
         if (traits.lineSpacing) details.push(`line-height: ${traits.lineSpacing}`);
+        const slides = group ? formatSlideNumbers(group.slideNumbers) : '';
+        if (slides) details.push(slides);
         if (traits.source) details.push(`Source: ${traits.source}`);
         if (traits.fallback) details.push(`Fallback: ${traits.fallback}`);
         return details;
+    }
+
+    function appendStyleExample(parent, example, background) {
+        const item = document.createElement('div');
+        item.style.cssText = `margin-top: 6px; padding: 4px 6px; border-radius: 4px; background: ${background}; ${styleTraitsToCss(example.traits)}`;
+
+        if (example.slideNumber) {
+            const slideMeta = document.createElement('div');
+            slideMeta.textContent = `${translationsToPptxLabel('slide')}: ${example.slideNumber}`;
+            slideMeta.style.cssText = 'font-size: 0.8rem; opacity: 0.6; margin-bottom: 2px;';
+            item.appendChild(slideMeta);
+        }
+
+        const text = document.createElement('div');
+        text.textContent = example.text || '(empty text)';
+        item.appendChild(text);
+        parent.appendChild(item);
     }
 
     function createStylePreviewCard(group, styleNumber, onClose) {
@@ -842,7 +938,7 @@
         number.style.cssText = 'font-weight: 700; font-size: 0.95rem; margin-bottom: 6px;';
         card.appendChild(number);
 
-        const details = formatStyleDetails(group.examples[0] ? group.examples[0].traits : {});
+        const details = formatStyleDetails(group.examples[0] ? group.examples[0].traits : {}, group);
         if (details.length) {
             const detailsEl = document.createElement('div');
             detailsEl.style.cssText = 'font-size: 0.8rem; opacity: 0.6; margin-bottom: 8px;';
@@ -854,12 +950,7 @@
             card.appendChild(detailsEl);
         }
 
-        for (const example of group.examples) {
-            const item = document.createElement('div');
-            item.textContent = example.text || '(empty text)';
-            item.style.cssText = `margin-top: 6px; padding: 4px 6px; border-radius: 4px; background: ${cardBackground}; ${styleTraitsToCss(example.traits)}`;
-            card.appendChild(item);
-        }
+        for (const example of group.examples) appendStyleExample(card, example, cardBackground);
 
         return card;
     }
@@ -887,7 +978,7 @@
             'box-shadow: 0 8px 24px rgba(0,0,0,0.3)'
         ].join('; ');
 
-        const details = formatStyleDetails(group.examples[0] ? group.examples[0].traits : {});
+        const details = formatStyleDetails(group.examples[0] ? group.examples[0].traits : {}, group);
         if (details.length) {
             const detailsEl = document.createElement('div');
             detailsEl.style.cssText = 'font-size: 0.8rem; opacity: 0.6; margin-bottom: 8px;';
@@ -899,12 +990,7 @@
             popup.appendChild(detailsEl);
         }
 
-        for (const example of group.examples) {
-            const item = document.createElement('div');
-            item.textContent = example.text || '(empty text)';
-            item.style.cssText = `margin-top: 6px; padding: 4px 6px; border-radius: 4px; background: ${popupBackground}; ${styleTraitsToCss(example.traits)}`;
-            popup.appendChild(item);
-        }
+        for (const example of group.examples) appendStyleExample(popup, example, popupBackground);
 
         document.body.appendChild(popup);
         const show = () => {
@@ -1016,22 +1102,22 @@
         updateStylePresetButton();
 
         if (!stylePptxBuffer) {
-            styleTableArea.textContent = 'Load a marked PPTX file first.';
+            styleTableArea.textContent = translationsToPptxMessage('loadPptxFirst');
             return;
         }
 
         if (!styleTranslationData) {
-            styleTableArea.textContent = 'Load an XLSX file with language columns to build the table.';
+            styleTableArea.textContent = translationsToPptxMessage('loadXlsxFirst');
             return;
         }
 
         if (!styleState || !styleState.languages.length) {
-            styleTableArea.textContent = 'No language columns found in the XLSX.';
+            styleTableArea.textContent = translationsToPptxMessage('noLanguageColumns');
             return;
         }
 
         if (!styleState.groups.length) {
-            styleTableArea.textContent = 'No editable text styles found in the PPTX.';
+            styleTableArea.textContent = translationsToPptxMessage('noEditableStyles');
             return;
         }
 
@@ -1060,12 +1146,12 @@
         ].join('; ');
 
         const sidePanelTitle = document.createElement('div');
-        sidePanelTitle.textContent = 'Selected styles';
+        sidePanelTitle.textContent = translationsToPptxLabel('selectedStylesTitle');
         sidePanelTitle.style.cssText = 'font-weight: 600; margin-bottom: 8px;';
         sidePanel.appendChild(sidePanelTitle);
 
         const emptySidePanel = document.createElement('div');
-        emptySidePanel.textContent = 'Click a style name in the table to add it here.';
+        emptySidePanel.textContent = translationsToPptxLabel('emptySelectedStyles');
         emptySidePanel.style.cssText = 'font-size: 0.85rem; opacity: 0.65;';
         sidePanel.appendChild(emptySidePanel);
 
@@ -1127,10 +1213,10 @@
         }
 
         const styleHead = document.createElement('th');
-        styleHead.textContent = 'Size / color';
+        styleHead.textContent = translationsToPptxLabel('sizeColorHeader');
 
         const usesHead = document.createElement('th');
-        usesHead.textContent = 'Uses';
+        usesHead.textContent = translationsToPptxLabel('usesHeader');
         languageRow.appendChild(usesHead);
         languageRow.appendChild(styleHead);
 
@@ -1139,7 +1225,7 @@
         multiplierRow.appendChild(usesBlank);
 
         const multiplierHead = document.createElement('th');
-        multiplierHead.textContent = 'Multiplier';
+        multiplierHead.textContent = translationsToPptxLabel('multiplierHeader');
         multiplierRow.appendChild(multiplierHead);
 
         thead.appendChild(languageRow);
@@ -1211,7 +1297,7 @@
             footerRow.appendChild(labelCell);
 
             const styleCell = document.createElement('td');
-            styleCell.textContent = 'Download';
+            styleCell.textContent = translationsToPptxLabel('downloadFooter');
             footerRow.appendChild(styleCell);
 
             tfoot.appendChild(footerRow);
@@ -1232,7 +1318,7 @@
         }
 
         if (!window.PptxStyleUtils || typeof window.PptxStyleUtils.extractStyleRowsFromPptx !== 'function') {
-            throw new Error('Style utilities are not loaded. Check that pptx-style-utils.js is included before pptx-converter.js.');
+            throw new Error(translationsToPptxMessage('styleUtilitiesMissing'));
         }
         const styleRows = await window.PptxStyleUtils.extractStyleRowsFromPptx(stylePptxBuffer.slice(0));
         styleState = buildStyleState(styleRows, styleTranslationData);
@@ -1418,72 +1504,78 @@
         el.style.display = name ? 'block' : 'none';
     }
 
-    setupSingleDropzone(pptxMarkupDropzone, pptxMarkupInput, pptxMarkupFilename, '.pptx', (file) => {
-        markupFile = file;
-        showFilename(pptxMarkupFilename, file.name);
-        markupBtn.disabled = false;
-        markupDownload.innerHTML = '';
-        markupError.textContent = '';
-    });
+    async function init() {
+        await loadTranslationsToPptxConfig();
 
-    if (markupBtn) markupBtn.addEventListener('click', handleMarkup);
+        setupSingleDropzone(pptxMarkupDropzone, pptxMarkupInput, pptxMarkupFilename, '.pptx', (file) => {
+            markupFile = file;
+            showFilename(pptxMarkupFilename, file.name);
+            markupBtn.disabled = false;
+            markupDownload.innerHTML = '';
+            markupError.textContent = '';
+        });
 
-    setupSingleDropzone(pptxExtractDropzone, pptxExtractInput, pptxExtractFilename, '.pptx', (file) => {
-        extractFile = file;
-        showFilename(pptxExtractFilename, file.name);
-        extractBtn.disabled = false;
-        extractDownload.innerHTML = '';
-        extractError.textContent = '';
-    });
+        if (markupBtn) markupBtn.addEventListener('click', handleMarkup);
 
-    extractBtn.addEventListener('click', handleExtract);
+        setupSingleDropzone(pptxExtractDropzone, pptxExtractInput, pptxExtractFilename, '.pptx', (file) => {
+            extractFile = file;
+            showFilename(pptxExtractFilename, file.name);
+            extractBtn.disabled = false;
+            extractDownload.innerHTML = '';
+            extractError.textContent = '';
+        });
 
-    setupSingleDropzone(stylePptxDropzone, stylePptxInput, stylePptxFilename, '.pptx', async (file) => {
-        stylePptxName = file.name;
-        showFilename(stylePptxFilename, file.name);
-        styleError.textContent = '';
-        if (styleResult) styleResult.innerHTML = '';
+        extractBtn.addEventListener('click', handleExtract);
 
-        try {
-            stylePptxBuffer = await readFileAsArrayBuffer(file);
-            await rebuildStyleState();
-        } catch (err) {
-            styleError.textContent = 'Error reading PPTX: ' + err.message;
-            stylePptxBuffer = null;
-            styleState = null;
-            renderStyleControls();
-        }
-    });
-
-    setupSingleDropzone(styleXlsxDropzone, styleXlsxInput, styleXlsxFilename, '.xlsx', async (file) => {
-        showFilename(styleXlsxFilename, file.name);
-        styleError.textContent = '';
-        if (styleResult) styleResult.innerHTML = '';
-
-        try {
-            styleTranslationData = await parseXlsxFile(file);
-            await rebuildStyleState();
-        } catch (err) {
-            styleError.textContent = 'Error reading XLSX: ' + err.message;
-            styleTranslationData = null;
-            await rebuildStyleState();
-        }
-    });
-
-    if (styleSavePresetBtn) styleSavePresetBtn.addEventListener('click', saveStylePreset);
-    if (styleLoadPresetBtn && stylePresetInput) {
-        styleLoadPresetBtn.addEventListener('click', () => stylePresetInput.click());
-        stylePresetInput.addEventListener('change', async () => {
-            if (!stylePresetInput.files.length) return;
+        setupSingleDropzone(stylePptxDropzone, stylePptxInput, stylePptxFilename, '.pptx', async (file) => {
+            stylePptxName = file.name;
+            showFilename(stylePptxFilename, file.name);
             styleError.textContent = '';
+            if (styleResult) styleResult.innerHTML = '';
+
             try {
-                await loadStylePreset(stylePresetInput.files[0]);
+                stylePptxBuffer = await readFileAsArrayBuffer(file);
+                await rebuildStyleState();
             } catch (err) {
-                styleError.textContent = 'Error loading preset: ' + err.message;
-            } finally {
-                stylePresetInput.value = '';
+                styleError.textContent = 'Error reading PPTX: ' + err.message;
+                stylePptxBuffer = null;
+                styleState = null;
+                renderStyleControls();
             }
         });
+
+        setupSingleDropzone(styleXlsxDropzone, styleXlsxInput, styleXlsxFilename, '.xlsx', async (file) => {
+            showFilename(styleXlsxFilename, file.name);
+            styleError.textContent = '';
+            if (styleResult) styleResult.innerHTML = '';
+
+            try {
+                styleTranslationData = await parseXlsxFile(file);
+                await rebuildStyleState();
+            } catch (err) {
+                styleError.textContent = 'Error reading XLSX: ' + err.message;
+                styleTranslationData = null;
+                await rebuildStyleState();
+            }
+        });
+
+        if (styleSavePresetBtn) styleSavePresetBtn.addEventListener('click', saveStylePreset);
+        if (styleLoadPresetBtn && stylePresetInput) {
+            styleLoadPresetBtn.addEventListener('click', () => stylePresetInput.click());
+            stylePresetInput.addEventListener('change', async () => {
+                if (!stylePresetInput.files.length) return;
+                styleError.textContent = '';
+                try {
+                    await loadStylePreset(stylePresetInput.files[0]);
+                } catch (err) {
+                    styleError.textContent = 'Error loading preset: ' + err.message;
+                } finally {
+                    stylePresetInput.value = '';
+                }
+            });
+        }
+        renderStyleControls();
     }
-    renderStyleControls();
+
+    init();
 })();
