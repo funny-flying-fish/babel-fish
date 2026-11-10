@@ -5,6 +5,9 @@
     const STYLE_METRIC_SUFFIXES = ['chars', 'fontPt', 'fontRef', 'fontSource', 'styleFallbackSource', 'styleKey', 'styleLabel', 'densityRatio', 'fontScale'];
     const A_NS = 'http://schemas.openxmlformats.org/drawingml/2006/main';
     const TRANSLATION_NAME_RE = /^tr_[a-f0-9]{6,12}_[a-z][a-z0-9]*$/i;
+    const AUTO_KEY_PARAGRAPH_RE = /^(.+?)__p(\d+)$/;
+    const AUTO_KEY_HASH_RE = /^(.+?)__h([a-f0-9]+)(?:__(\d+))?$/i;
+    const AUTO_KEY_MARKER_RE = /(__p\d+|__h[a-f0-9]+(?:__\d+)?)$/i;
     const TRANSLATIONS_TO_PPTX_CONFIG_URL = 'pptx-translations-pptx.json';
     const DEFAULT_TRANSLATIONS_TO_PPTX_CONFIG = {
         defaultLanguage: 'EN',
@@ -40,6 +43,9 @@
     const pptxMarkupDropzone = document.getElementById('pptxMarkupDropzone');
     const pptxMarkupInput = document.getElementById('pptxMarkupInput');
     const pptxMarkupFilename = document.getElementById('pptxMarkupFilename');
+    const prepareOldXlsxDropzone = document.getElementById('prepareOldXlsxDropzone');
+    const prepareOldXlsxInput = document.getElementById('prepareOldXlsxInput');
+    const prepareOldXlsxFilename = document.getElementById('prepareOldXlsxFilename');
     const markupBtn = document.getElementById('markupBtn');
     const markupDownload = document.getElementById('markupDownload');
     const markupError = document.getElementById('markupError');
@@ -62,6 +68,7 @@
     const styleError = document.getElementById('styleError');
 
     let markupFile = null;
+    let previousXlsxFile = null;
     let stylePptxBuffer = null;
     let stylePptxName = '';
     let styleTranslationData = null;
@@ -192,6 +199,42 @@
             hadMultipleRuns: false,
             hadStyledRuns: false
         };
+    }
+
+    function normalizeTextForKey(text) {
+        const rich = window.PptxRichText;
+        const plain = rich && typeof rich.plainTextForComparison === 'function'
+            ? rich.plainTextForComparison(text)
+            : String(text || '').trim();
+        return plain.replace(/\s+/g, ' ').toLowerCase();
+    }
+
+    // FNV-1a 32-bit hash; we keep only 6 hex characters to stay compact in keys.
+    function shortHashFromText(text) {
+        const normalized = normalizeTextForKey(text);
+        let hash = 0x811c9dc5;
+        for (let i = 0; i < normalized.length; i++) {
+            hash ^= normalized.charCodeAt(i);
+            hash = Math.imul(hash, 0x01000193);
+        }
+        return (hash >>> 0).toString(16).padStart(8, '0').slice(0, 6);
+    }
+
+    function isAutoKey(key) {
+        const value = String(key || '').trim();
+        if (!value) return false;
+        const pMatch = value.match(AUTO_KEY_PARAGRAPH_RE);
+        if (pMatch && TRANSLATION_NAME_RE.test(pMatch[1])) return true;
+        const hMatch = value.match(AUTO_KEY_HASH_RE);
+        if (hMatch && TRANSLATION_NAME_RE.test(hMatch[1])) return true;
+        return false;
+    }
+
+    function splitAutoMarker(key) {
+        const value = String(key || '');
+        const match = value.match(AUTO_KEY_MARKER_RE);
+        if (!match) return { head: value, marker: '' };
+        return { head: value.slice(0, value.length - match[1].length), marker: match[1] };
     }
 
     function getTextFromRun(run) {
@@ -346,7 +389,7 @@
     }
 
     function createWarning(type, message, details = {}) {
-        return {
+        const warning = {
             severity: details.severity || 'warning',
             type,
             message,
@@ -357,6 +400,12 @@
             containerType: details.containerType || '',
             paragraphIndex: details.paragraphIndex ?? ''
         };
+        if (details.text !== undefined) warning.text = details.text;
+        if (details.migrate) warning.migrate = true;
+        if (details.kind) warning.kind = details.kind;
+        if (details.reason) warning.reason = details.reason;
+        if (details.matchCount) warning.matchCount = details.matchCount;
+        return warning;
     }
 
     function getPptxBaseName(filename) {
@@ -469,12 +518,13 @@
         target.appendChild(reportHost);
     }
 
-    async function markupPptxIds(arrayBuffer) {
+    async function markupPptxIds(arrayBuffer, knownCustomNames) {
         const zip = await JSZip.loadAsync(arrayBuffer);
         const slides = getSlideEntries(zip);
         const warnings = [];
         const usedIds = new Set();
         const seenNames = new Set();
+        const customNames = knownCustomNames instanceof Set ? knownCustomNames : new Set();
         let containerCount = 0;
         let renamedCount = 0;
         let keptCount = 0;
@@ -503,14 +553,16 @@
                 const currentId = getTranslationId(currentName);
                 if (currentId) usedIds.add(currentId);
 
-                const shouldKeep = isTranslationName(currentName) && !seenNames.has(currentName);
+                const isKnownCustom = customNames.has(currentName);
+                const isAcceptable = isTranslationName(currentName) || isKnownCustom;
+                const shouldKeep = isAcceptable && !seenNames.has(currentName);
                 if (shouldKeep) {
                     seenNames.add(currentName);
                     keptCount++;
                     continue;
                 }
 
-                if (isTranslationName(currentName) && seenNames.has(currentName)) {
+                if (isAcceptable && seenNames.has(currentName)) {
                     warnings.push(createWarning('duplicate-shape-name', `Slide ${slide.num}: duplicate ${currentName} renamed.`, {
                         slideNumber: slide.num,
                         shapeName: currentName,
@@ -555,28 +607,42 @@
             markupBtn.disabled = true;
             markupBtn.textContent = 'Preparing...';
 
+            let oldRows = null;
+            let knownCustomShapeNames = new Set();
+            if (previousXlsxFile) {
+                oldRows = await parseXlsxFile(previousXlsxFile);
+                knownCustomShapeNames = extractCustomShapeNamesFromXlsx(oldRows);
+            }
+
             const buffer = await readFileAsArrayBuffer(markupFile);
-            const result = await markupPptxIds(buffer);
+            const result = await markupPptxIds(buffer, knownCustomShapeNames);
             const baseName = getPptxBaseName(markupFile.name);
             const markedFilename = getMarkedPptxFilename(markupFile.name);
 
             const markedBuffer = await result.blob.arrayBuffer();
             const lang = sourceLanguage && sourceLanguage.value.trim() ? sourceLanguage.value.trim() : 'EN';
-            const extractResult = await extractTextFromPptx(markedBuffer, lang);
-            const xlsxBlob = createWorkbookBlob(extractResult.rows, 'Translations');
+            const extractResult = await extractTextFromPptx(markedBuffer, lang, knownCustomShapeNames);
 
-            const downloadsWrap = document.createElement('div');
-            downloadsWrap.style.cssText = 'display: flex; flex-wrap: wrap; gap: 12px 20px; margin-bottom: 4px;';
-            downloadsWrap.appendChild(createDownloadLink(result.blob, markedFilename, `Download ${markedFilename}`));
-            downloadsWrap.appendChild(createDownloadLink(xlsxBlob, `${baseName}.xlsx`, `Download ${baseName}.xlsx`));
-            markupDownload.appendChild(downloadsWrap);
+            let migrateSummary = null;
+            if (oldRows) {
+                migrateSummary = applyPreviousCustomKeys(
+                    extractResult.entries,
+                    oldRows,
+                    lang,
+                    extractResult.warnings
+                );
+            }
 
-            const allWarnings = [...result.warnings, ...extractResult.warnings];
-            renderResult(markupDownload, [
-                `Marked ${result.renamedCount} of ${result.containerCount} text containers.`,
-                `Kept ${result.keptCount} existing translation IDs.`,
-                `Extracted ${extractResult.rows.length - 1} paragraph entries for ${lang}.`
-            ], allWarnings, `${baseName}_prepare`);
+            renderKeyEditor({
+                entries: extractResult.entries,
+                lang,
+                baseName,
+                markedBlob: result.blob,
+                markedFilename,
+                markupResult: result,
+                extractWarnings: extractResult.warnings,
+                migrateSummary
+            });
         } catch (err) {
             markupError.textContent = 'Error: ' + err.message;
         } finally {
@@ -585,10 +651,11 @@
         }
     }
 
-    async function extractTextFromPptx(arrayBuffer, lang) {
+    async function extractTextFromPptx(arrayBuffer, lang, knownCustomNames) {
+        const customNames = knownCustomNames instanceof Set ? knownCustomNames : new Set();
         const zip = await JSZip.loadAsync(arrayBuffer);
         const slides = getSlideEntries(zip);
-        const rows = [['key', lang]];
+        const entries = [];
         const warnings = [];
         const nameCounts = new Map();
         let containerCount = 0;
@@ -608,7 +675,7 @@
                     nameCounts.set(shapeName, (nameCounts.get(shapeName) || 0) + 1);
                 }
 
-                if (!isTranslationName(shapeName)) {
+                if (!isTranslationName(shapeName) && !customNames.has(shapeName)) {
                     warnings.push(createWarning('unmarked-shape', `Slide ${slide.num}: "${shapeName || '(unnamed)'}" is not a translation ID. Run Prepare PPTX first.`, {
                         slideNumber: slide.num,
                         shapeName,
@@ -616,6 +683,9 @@
                         containerType: container.containerType
                     }));
                 }
+
+                const isTable = container.containerType === 'graphicFrame';
+                const tableHashCounts = new Map();
 
                 for (const item of container.nonEmptyParagraphs) {
                     const keyBase = shapeName || `unmarked_id${container.shapeId || 'unknown'}`;
@@ -629,10 +699,29 @@
                             paragraphIndex: item.paragraphIndex
                         }));
                     }
-                    rows.push([
-                        `${keyBase}__p${item.paragraphIndex}`,
-                        item.text
-                    ]);
+
+                    let autoKey;
+                    if (isTable) {
+                        const hash = shortHashFromText(item.text);
+                        const count = (tableHashCounts.get(hash) || 0) + 1;
+                        tableHashCounts.set(hash, count);
+                        autoKey = count > 1
+                            ? `${keyBase}__h${hash}__${count}`
+                            : `${keyBase}__h${hash}`;
+                    } else {
+                        autoKey = `${keyBase}__p${item.paragraphIndex}`;
+                    }
+
+                    entries.push({
+                        autoKey,
+                        currentKey: autoKey,
+                        shapeName,
+                        slideNumber: String(slide.num),
+                        containerType: container.containerType,
+                        paragraphIndex: item.paragraphIndex,
+                        text: item.text,
+                        origin: 'auto'
+                    });
                 }
             }
         }
@@ -645,7 +734,1159 @@
             }
         }
 
-        return { rows, warnings, containerCount };
+        return { entries, warnings, containerCount, lang };
+    }
+
+    function buildXlsxRowsFromEntries(entries, lang) {
+        const rows = [['key', lang]];
+        for (const entry of entries) {
+            rows.push([entry.currentKey, entry.text]);
+        }
+        return rows;
+    }
+
+    function inferShapeNameFromKey(key) {
+        if (!key) return '';
+        const value = String(key).trim();
+        if (!value) return '';
+        const { head, marker } = splitAutoMarker(value);
+        if (marker) return head;
+        return value.replace(/_+\d+$/, '');
+    }
+
+    function normalizeLevelFragment(value) {
+        return String(value || '').trim().replace(/_+$/, '');
+    }
+
+    function composeKey(parts) {
+        const segs = [];
+        if (parts.userPrefix) segs.push(parts.userPrefix);
+        if (parts.userBasename) segs.push(parts.userBasename);
+        if (parts.keyid) segs.push(parts.keyid);
+        return segs.join('__') + (parts.marker || '');
+    }
+
+    function extractKeyid(entry) {
+        const { head } = splitAutoMarker(entry.currentKey);
+        let s = head;
+        if (entry.userPrefix) {
+            if (s === entry.userPrefix) return '';
+            if (s.startsWith(entry.userPrefix + '__')) s = s.slice(entry.userPrefix.length + 2);
+        }
+        if (entry.userBasename) {
+            if (s === entry.userBasename) return '';
+            if (s.startsWith(entry.userBasename + '__')) s = s.slice(entry.userBasename.length + 2);
+        }
+        return s;
+    }
+
+    function stripAutoHashPrefix(value) {
+        return String(value || '').replace(/^tr_[a-f0-9]{6,12}_/i, '');
+    }
+
+    function inferLevelsForMigratedEntries(entries) {
+        const bySlide = new Map();
+        for (const e of entries) {
+            const k = e.slideNumber || '0';
+            if (!bySlide.has(k)) bySlide.set(k, []);
+            bySlide.get(k).push(e);
+        }
+
+        for (const slideEntries of bySlide.values()) {
+            const preserved = slideEntries.filter(e => e.origin === 'preserved');
+            if (!preserved.length) continue;
+
+            const parsed = preserved.map(e => {
+                const { head, marker } = splitAutoMarker(e.currentKey);
+                return { entry: e, segments: head ? head.split('__') : [], marker };
+            });
+
+            let slidePrefix = null;
+            if (parsed.length > 0 && parsed.every(p => p.segments.length >= 1)) {
+                const firsts = new Set(parsed.map(p => p.segments[0]));
+                if (firsts.size === 1) {
+                    const candidate = parsed[0].segments[0];
+                    const someHasMoreLevels = parsed.some(p => p.segments.length >= 2);
+                    const multipleContainers = new Set(parsed.map(p => p.entry.shapeName || '(unnamed)')).size > 1;
+                    if (someHasMoreLevels || multipleContainers || parsed.length === 1) {
+                        slidePrefix = candidate;
+                    }
+                }
+            }
+
+            if (slidePrefix) {
+                for (const p of parsed) {
+                    if (p.segments[0] === slidePrefix) {
+                        p.entry.userPrefix = slidePrefix;
+                        p.segments.shift();
+                    }
+                }
+                for (const e of slideEntries) {
+                    if (e.origin === 'preserved') continue;
+                    if (e.userPrefix === slidePrefix) continue;
+                    const marker = splitAutoMarker(e.currentKey).marker;
+                    let keyid = extractKeyid(e);
+                    keyid = stripAutoHashPrefix(keyid);
+                    if (keyid === slidePrefix) keyid = '';
+                    else if (keyid.startsWith(slidePrefix + '__')) keyid = keyid.slice(slidePrefix.length + 2);
+                    const oldKey = e.currentKey;
+                    e.userPrefix = slidePrefix;
+                    e.currentKey = composeKey({
+                        userPrefix: slidePrefix,
+                        userBasename: e.userBasename,
+                        keyid,
+                        marker
+                    });
+                    if (e.currentKey !== oldKey && e.origin === 'auto') e.origin = 'custom';
+                }
+            }
+
+            const byContainer = new Map();
+            for (const p of parsed) {
+                const k = p.entry.shapeName || '(unnamed)';
+                if (!byContainer.has(k)) byContainer.set(k, []);
+                byContainer.get(k).push(p);
+            }
+
+            for (const [shapeName, cps] of byContainer.entries()) {
+                let basename = null;
+                if (cps.length > 0 && cps.every(p => p.segments.length >= 1)) {
+                    const firsts = new Set(cps.map(p => p.segments[0]));
+                    if (firsts.size === 1) basename = cps[0].segments[0];
+                }
+                if (!basename) continue;
+
+                for (const p of cps) {
+                    if (p.segments[0] === basename) {
+                        p.entry.userBasename = basename;
+                        p.segments.shift();
+                    }
+                }
+
+                for (const e of slideEntries) {
+                    if (e.origin === 'preserved') continue;
+                    if ((e.shapeName || '(unnamed)') !== shapeName) continue;
+                    if (e.userBasename === basename) continue;
+                    if (!e.userPrefix) continue;
+                    const marker = splitAutoMarker(e.currentKey).marker;
+                    let keyid = extractKeyid(e);
+                    if (keyid === basename) keyid = '';
+                    else if (keyid.startsWith(basename + '__')) keyid = keyid.slice(basename.length + 2);
+                    if (!e.keyidIsUserSet) {
+                        keyid = stripAutoHashPrefix(keyid);
+                        if (marker) keyid = '';
+                    }
+                    const oldKey = e.currentKey;
+                    e.userBasename = basename;
+                    e.currentKey = composeKey({
+                        userPrefix: e.userPrefix,
+                        userBasename: basename,
+                        keyid,
+                        marker
+                    });
+                    if (e.currentKey !== oldKey && e.origin === 'auto') e.origin = 'custom';
+                }
+            }
+        }
+    }
+
+    function longestCommonPrefix(values) {
+        if (!values.length) return '';
+        let prefix = values[0];
+        for (let i = 1; i < values.length; i++) {
+            while (prefix && !values[i].startsWith(prefix)) {
+                prefix = prefix.slice(0, -1);
+            }
+            if (!prefix) return '';
+        }
+        return prefix;
+    }
+
+    function deriveShapeNameFromEntries(entries) {
+        const heads = entries
+            .map(e => splitAutoMarker(e.currentKey).head)
+            .filter(Boolean);
+        if (!heads.length) return null;
+        const unique = Array.from(new Set(heads));
+        if (unique.length === 1) return unique[0];
+        const stripped = Array.from(new Set(unique.map(h => h.replace(/_+\d+$/, ''))));
+        if (stripped.length === 1) return stripped[0];
+        return longestCommonPrefix(stripped).replace(/_+$/, '') || null;
+    }
+
+    function computeShapeRenames(entries) {
+        const byShape = new Map();
+        for (const entry of entries) {
+            if (!entry.shapeName) continue;
+            if (!byShape.has(entry.shapeName)) byShape.set(entry.shapeName, []);
+            byShape.get(entry.shapeName).push(entry);
+        }
+        const renames = new Map();
+        const usedNames = new Set();
+        for (const [oldName, items] of byShape) {
+            let newName = deriveShapeNameFromEntries(items);
+            if (!newName || newName === oldName) continue;
+            if (usedNames.has(newName)) {
+                let suffix = 2;
+                while (usedNames.has(`${newName}_${suffix}`)) suffix++;
+                newName = `${newName}_${suffix}`;
+            }
+            usedNames.add(newName);
+            renames.set(oldName, newName);
+        }
+        return renames;
+    }
+
+    async function applyShapeNamesToPptx(pptxBlob, renames) {
+        if (!renames.size) return pptxBlob;
+        const arrayBuffer = await pptxBlob.arrayBuffer();
+        const zip = await JSZip.loadAsync(arrayBuffer);
+        const slides = getSlideEntries(zip);
+        for (const slide of slides) {
+            const file = zip.file(slide.path);
+            if (!file) continue;
+            const xml = await file.async('string');
+            const doc = parseXml(xml);
+            const cNvPrs = doc.getElementsByTagName('p:cNvPr');
+            let modified = false;
+            for (let i = 0; i < cNvPrs.length; i++) {
+                const el = cNvPrs[i];
+                const currentName = el.getAttribute('name');
+                if (renames.has(currentName)) {
+                    el.setAttribute('name', renames.get(currentName));
+                    modified = true;
+                }
+            }
+            if (modified) {
+                zip.file(slide.path, new XMLSerializer().serializeToString(doc));
+            }
+        }
+        return await zip.generateAsync({ type: 'blob', mimeType: PPTX_MIME });
+    }
+
+    function extractCustomShapeNamesFromXlsx(rows) {
+        const names = new Set();
+        if (!rows || rows.length < 2) return names;
+        const header = (rows[0] || []).map(v => String(v || '').trim());
+        const headerIndex = buildHeaderIndex(header);
+
+        if (headerIndex.has('shapeName')) {
+            const idx = headerIndex.get('shapeName');
+            for (let r = 1; r < rows.length; r++) {
+                const name = String(((rows[r] || [])[idx]) || '').trim();
+                if (name && !isTranslationName(name)) names.add(name);
+            }
+        }
+
+        if (headerIndex.has('key')) {
+            const idx = headerIndex.get('key');
+            for (let r = 1; r < rows.length; r++) {
+                const key = String(((rows[r] || [])[idx]) || '').trim();
+                if (!key || isAutoKey(key)) continue;
+                const candidate = inferShapeNameFromKey(key);
+                if (candidate && !isTranslationName(candidate)) names.add(candidate);
+            }
+        }
+
+        return names;
+    }
+
+    function applyPreviousCustomKeys(entries, oldXlsxRows, lang, warnings) {
+        if (!oldXlsxRows || oldXlsxRows.length < 2) {
+            return { migrated: 0, orphaned: 0, ambiguous: 0 };
+        }
+
+        const header = (oldXlsxRows[0] || []).map(value => String(value || '').trim());
+        const headerIndex = buildHeaderIndex(header);
+        if (!headerIndex.has('key')) {
+            return { migrated: 0, orphaned: 0, ambiguous: 0 };
+        }
+
+        const languageColumns = getLanguageColumns(header);
+        let langColumnIndex = null;
+        const matchingLang = languageColumns.find(
+            col => col.code.toLowerCase() === String(lang || '').toLowerCase()
+        );
+        if (matchingLang) langColumnIndex = matchingLang.index;
+        else if (languageColumns.length) langColumnIndex = languageColumns[0].index;
+
+        if (langColumnIndex === null) {
+            return { migrated: 0, orphaned: 0, ambiguous: 0 };
+        }
+
+        const hasShapeCol = headerIndex.has('shapeName');
+        const hasSlideCol = headerIndex.has('slideNumber');
+
+        const entriesByShape = new Map();
+        const entriesByText = new Map();
+        for (const entry of entries) {
+            if (entry.shapeName) {
+                if (!entriesByShape.has(entry.shapeName)) entriesByShape.set(entry.shapeName, []);
+                entriesByShape.get(entry.shapeName).push(entry);
+            }
+            const textKey = normalizeTextForKey(entry.text);
+            if (!entriesByText.has(textKey)) entriesByText.set(textKey, []);
+            entriesByText.get(textKey).push(entry);
+        }
+
+        const consumed = new Set();
+        let migrated = 0;
+        let orphaned = 0;
+        let ambiguous = 0;
+
+        for (let r = 1; r < oldXlsxRows.length; r++) {
+            const oldRow = oldXlsxRows[r] || [];
+            const oldKey = String(oldRow[headerIndex.get('key')] || '').trim();
+            if (!oldKey || isAutoKey(oldKey)) continue;
+
+            const oldShapeName = hasShapeCol
+                ? String(oldRow[headerIndex.get('shapeName')] || '').trim()
+                : inferShapeNameFromKey(oldKey);
+            const oldSlide = hasSlideCol
+                ? String(oldRow[headerIndex.get('slideNumber')] || '').trim()
+                : '';
+            const oldEn = String(oldRow[langColumnIndex] || '').trim();
+
+            if (!oldEn) {
+                orphaned++;
+                warnings.push(createWarning('orphaned-custom-key', `Previous XLSX: custom key "${oldKey}" has empty source text.`, {
+                    key: oldKey,
+                    shapeName: oldShapeName,
+                    slideNumber: oldSlide,
+                    text: '',
+                    migrate: true,
+                    kind: 'orphaned',
+                    reason: 'empty-text'
+                }));
+                continue;
+            }
+
+            const normEn = normalizeTextForKey(oldEn);
+            const shapeCandidates = oldShapeName
+                ? (entriesByShape.get(oldShapeName) || []).filter(e => normalizeTextForKey(e.text) === normEn)
+                : [];
+            const globalCandidates = entriesByText.get(normEn) || [];
+
+            let pool = shapeCandidates.length ? shapeCandidates : globalCandidates;
+            let available = pool.filter(e => !consumed.has(e));
+
+            if (!available.length && shapeCandidates.length && globalCandidates.length) {
+                available = globalCandidates.filter(e => !consumed.has(e));
+                pool = globalCandidates;
+            }
+
+            if (!available.length) {
+                orphaned++;
+                const exists = pool.length > 0;
+                warnings.push(createWarning('orphaned-custom-key',
+                    exists
+                        ? `Previous XLSX: custom key "${oldKey}" — all matching paragraphs already taken by earlier custom keys.`
+                        : `Previous XLSX: custom key "${oldKey}" — source text not found (cell may be removed or edited).`,
+                    {
+                        key: oldKey,
+                        shapeName: oldShapeName,
+                        slideNumber: oldSlide,
+                        text: oldEn,
+                        migrate: true,
+                        kind: 'orphaned',
+                        reason: exists ? 'already-migrated' : 'source-not-found'
+                    }
+                ));
+                continue;
+            }
+
+            const target = available[0];
+            target.currentKey = oldKey;
+            target.origin = 'preserved';
+            target.keyidIsUserSet = true;
+            consumed.add(target);
+            migrated++;
+        }
+
+        inferLevelsForMigratedEntries(entries);
+        return { migrated, orphaned, ambiguous };
+    }
+
+    function buildKeyDraft(entries) {
+        const slides = [];
+        const slidesByNum = new Map();
+        const containersByPath = new Map();
+
+        entries.forEach((entry, entryIndex) => {
+            entry.id = entryIndex;
+            if (entry.autoMarker === undefined) {
+                entry.autoMarker = splitAutoMarker(entry.autoKey).marker;
+            }
+            if (entry.userPrefix === undefined) entry.userPrefix = '';
+            if (entry.userBasename === undefined) entry.userBasename = '';
+            if (entry.keyidIsUserSet === undefined) entry.keyidIsUserSet = false;
+            const slideKey = entry.slideNumber || '0';
+            let slide = slidesByNum.get(slideKey);
+            if (!slide) {
+                slide = {
+                    num: entry.slideNumber,
+                    label: entry.slideNumber ? `Slide ${entry.slideNumber}` : 'Unknown slide',
+                    containers: [],
+                    containersByName: new Map()
+                };
+                slidesByNum.set(slideKey, slide);
+                slides.push(slide);
+            }
+
+            const containerKey = `${slideKey}::${entry.shapeName || '(unnamed)'}`;
+            let container = containersByPath.get(containerKey);
+            if (!container) {
+                container = {
+                    shapeName: entry.shapeName || '(unnamed)',
+                    containerType: entry.containerType,
+                    entries: []
+                };
+                containersByPath.set(containerKey, container);
+                slide.containers.push(container);
+                slide.containersByName.set(container.shapeName, container);
+            }
+            container.entries.push(entry);
+        });
+
+        return { slides, flatEntries: entries };
+    }
+
+    function isValidKeyFragment(value) {
+        return /^[A-Za-z0-9_.]+$/.test(String(value || ''));
+    }
+
+    function renderKeyEditor(opts) {
+        const {
+            entries,
+            lang,
+            baseName,
+            markedBlob,
+            markedFilename,
+            markupResult,
+            extractWarnings,
+            migrateSummary
+        } = opts;
+
+        const draft = buildKeyDraft(entries);
+
+        markupDownload.innerHTML = '';
+
+        const editor = document.createElement('div');
+        editor.className = 'key-editor';
+
+        const summary = document.createElement('div');
+        summary.className = 'key-editor-summary';
+        editor.appendChild(summary);
+
+        const warningsHost = document.createElement('div');
+        warningsHost.className = 'key-editor-warnings';
+        editor.appendChild(warningsHost);
+
+        const mainWrap = document.createElement('div');
+        mainWrap.className = 'key-editor-main';
+
+        const tree = document.createElement('div');
+        tree.className = 'key-editor-tree';
+        mainWrap.appendChild(tree);
+
+        const downloadsWrap = document.createElement('div');
+        downloadsWrap.className = 'key-editor-downloads';
+        mainWrap.appendChild(downloadsWrap);
+
+        editor.appendChild(mainWrap);
+
+        markupDownload.appendChild(editor);
+
+        function refreshSummary() {
+            const total = draft.flatEntries.length;
+            let customCount = 0;
+            for (const entry of draft.flatEntries) {
+                if (entry.currentKey !== entry.autoKey) customCount++;
+            }
+            const lines = [
+                `<strong>${total}</strong> paragraph entries (${lang})`,
+                `<strong>${customCount}</strong> custom keys`,
+                `<strong>${draft.slides.length}</strong> slides`
+            ];
+            if (migrateSummary) {
+                lines.push(`Migrated from previous XLSX: <strong>${migrateSummary.migrated}</strong>`);
+                if (migrateSummary.orphaned) lines.push(`Orphaned: <strong>${migrateSummary.orphaned}</strong>`);
+                if (migrateSummary.ambiguous) lines.push(`Ambiguous: <strong>${migrateSummary.ambiguous}</strong>`);
+            }
+            summary.innerHTML = lines.map(line => `<span>${line}</span>`).join('');
+        }
+
+        function updateRowClass(row, entry) {
+            row.classList.toggle('is-custom', entry.currentKey !== entry.autoKey && entry.origin !== 'preserved');
+            row.classList.toggle('is-preserved', entry.currentKey !== entry.autoKey && entry.origin === 'preserved');
+            const resetBtn = row.querySelector('.key-reset');
+            if (resetBtn) resetBtn.disabled = entry.currentKey === entry.autoKey;
+        }
+
+        const containerProjections = [];
+        const basenameControls = [];
+
+        function refreshContainerProjections() {
+            for (const { container, span } of containerProjections) {
+                const newName = deriveShapeNameFromEntries(container.entries);
+                if (newName && newName !== container.shapeName) {
+                    span.textContent = ` → ${newName}`;
+                    span.classList.add('is-active');
+                } else {
+                    span.textContent = '';
+                    span.classList.remove('is-active');
+                }
+            }
+        }
+
+        function refreshBasenameAvailability() {
+            for (const ctrl of basenameControls) {
+                const hasPrefix = ctrl.container.entries.every(e => Boolean(e.userPrefix));
+                const hasBasename = ctrl.container.entries.some(e => Boolean(e.userBasename));
+                ctrl.input.disabled = !hasPrefix;
+                ctrl.applyBtn.disabled = !hasPrefix;
+                ctrl.resetBtn.disabled = !hasBasename;
+                ctrl.input.title = hasPrefix ? '' : 'Set a slide prefix first to keep basenames unique across slides.';
+                ctrl.applyBtn.title = hasPrefix ? '' : 'Set a slide prefix first to keep basenames unique across slides.';
+                ctrl.resetBtn.title = hasBasename ? 'Reset basename for this container' : 'No basename to reset';
+            }
+        }
+
+        function refreshAllRowClasses() {
+            tree.querySelectorAll('.key-editor-row').forEach(row => {
+                const id = Number(row.dataset.entryId);
+                const entry = draft.flatEntries[id];
+                if (entry) {
+                    if (row._syncRowParts) row._syncRowParts();
+                    updateRowClass(row, entry);
+                }
+            });
+            refreshContainerProjections();
+            refreshBasenameAvailability();
+        }
+
+        function flashStatus(el, message, kind) {
+            if (!el) return;
+            el.textContent = message;
+            el.classList.remove('is-ok', 'is-err');
+            el.classList.add(kind === 'ok' ? 'is-ok' : 'is-err');
+            clearTimeout(el._flashTimer);
+            el._flashTimer = setTimeout(() => {
+                el.textContent = '';
+                el.classList.remove('is-ok', 'is-err');
+            }, kind === 'ok' ? 2200 : 3500);
+        }
+
+        function getMarkerForEntry(entry) {
+            return splitAutoMarker(entry.currentKey).marker;
+        }
+
+        function deduplicateSlideKeys(slide) {
+            const allEntries = [];
+            for (const c of slide.containers) {
+                for (const e of c.entries) allEntries.push(e);
+            }
+            for (const entry of allEntries) {
+                if (entry._dedupSuffix) {
+                    const marker = splitAutoMarker(entry.currentKey).marker;
+                    let keyid = extractKeyid(entry);
+                    if (keyid.endsWith(entry._dedupSuffix)) {
+                        keyid = keyid.slice(0, -entry._dedupSuffix.length);
+                    }
+                    entry._dedupSuffix = '';
+                    entry.currentKey = composeKey({
+                        userPrefix: entry.userPrefix,
+                        userBasename: entry.userBasename,
+                        keyid,
+                        marker
+                    });
+                }
+            }
+            const usedKeys = new Set();
+            for (const entry of allEntries) {
+                let candidate = entry.currentKey;
+                if (usedKeys.has(candidate)) {
+                    const marker = splitAutoMarker(entry.currentKey).marker;
+                    let keyid = extractKeyid(entry);
+                    let n = 2;
+                    while (usedKeys.has(candidate)) {
+                        const suffix = '_' + n;
+                        candidate = composeKey({
+                            userPrefix: entry.userPrefix,
+                            userBasename: entry.userBasename,
+                            keyid: keyid + suffix,
+                            marker
+                        });
+                        n++;
+                    }
+                    entry._dedupSuffix = '_' + (n - 1);
+                    entry.currentKey = candidate;
+                }
+                usedKeys.add(candidate);
+            }
+        }
+
+        function findSlideForContainer(container) {
+            for (const s of draft.slides) {
+                if (s.containers.includes(container)) return s;
+            }
+            return null;
+        }
+
+        function applyPrefixToSlide(slide, prefix) {
+            if (!prefix) return { ok: false, error: 'Prefix is empty' };
+            if (!isValidKeyFragment(prefix)) return { ok: false, error: 'Allowed: A-Z, a-z, 0-9, _ .' };
+            markupError.textContent = '';
+            const normalized = normalizeLevelFragment(prefix);
+            if (!normalized) return { ok: false, error: 'Prefix is empty' };
+            let count = 0;
+            for (const container of slide.containers) {
+                for (const entry of container.entries) {
+                    const marker = getMarkerForEntry(entry);
+                    let keyid = extractKeyid(entry);
+                    keyid = stripAutoHashPrefix(keyid);
+                    entry.userPrefix = normalized;
+                    entry.currentKey = composeKey({
+                        userPrefix: normalized,
+                        userBasename: entry.userBasename,
+                        keyid,
+                        marker
+                    });
+                    if (entry.origin === 'auto') entry.origin = 'custom';
+                    count++;
+                }
+            }
+            deduplicateSlideKeys(slide);
+            refreshAllRowClasses();
+            refreshSummary();
+            return { ok: true, count };
+        }
+
+        function applyBasenameToContainer(container, basename) {
+            if (!basename) return { ok: false, error: 'Basename is empty' };
+            if (!isValidKeyFragment(basename)) return { ok: false, error: 'Allowed: A-Z, a-z, 0-9, _ .' };
+            const missingPrefix = container.entries.some(e => !e.userPrefix);
+            if (missingPrefix) {
+                return { ok: false, error: 'Set slide prefix first — basename alone may collide across slides.' };
+            }
+            markupError.textContent = '';
+            const normalized = normalizeLevelFragment(basename);
+            if (!normalized) return { ok: false, error: 'Basename is empty' };
+            const total = container.entries.length;
+            container.entries.forEach((entry, idx) => {
+                const marker = getMarkerForEntry(entry);
+                let keyid = extractKeyid(entry);
+                if (entry.keyidIsUserSet) {
+                    // Preserve user-typed keyid as-is
+                } else {
+                    keyid = stripAutoHashPrefix(keyid);
+                    if (marker) {
+                        keyid = '';
+                    } else if (total > 1) {
+                        keyid = String(idx + 1);
+                    }
+                }
+                entry.userBasename = normalized;
+                entry.currentKey = composeKey({
+                    userPrefix: entry.userPrefix,
+                    userBasename: normalized,
+                    keyid,
+                    marker
+                });
+                if (entry.origin === 'auto') entry.origin = 'custom';
+            });
+            const parentSlide = findSlideForContainer(container);
+            if (parentSlide) deduplicateSlideKeys(parentSlide);
+            refreshAllRowClasses();
+            refreshSummary();
+            return { ok: true, count: container.entries.length };
+        }
+
+        function resetBasenameInContainer(container) {
+            let changed = 0;
+            for (const entry of container.entries) {
+                if (!entry.userBasename) continue;
+                const marker = splitAutoMarker(entry.currentKey).marker;
+                let keyid = extractKeyid(entry);
+                if (!entry.keyidIsUserSet) {
+                    keyid = stripAutoHashPrefix(splitAutoMarker(entry.autoKey).head);
+                }
+                entry.userBasename = '';
+                entry.currentKey = composeKey({
+                    userPrefix: entry.userPrefix,
+                    userBasename: '',
+                    keyid,
+                    marker
+                });
+                if (entry.currentKey === entry.autoKey && !entry.userPrefix) {
+                    entry.origin = 'auto';
+                    entry.keyidIsUserSet = false;
+                }
+                changed++;
+            }
+            if (changed) {
+                const parentSlide = findSlideForContainer(container);
+                if (parentSlide) deduplicateSlideKeys(parentSlide);
+                refreshAllRowClasses();
+                refreshSummary();
+            }
+            return { ok: true, count: changed };
+        }
+
+        for (const slide of draft.slides) {
+            const slideEl = document.createElement('div');
+            slideEl.className = 'key-editor-slide is-collapsed';
+
+            const header = document.createElement('div');
+            header.className = 'key-editor-slide-header';
+
+            const titleBtn = document.createElement('button');
+            titleBtn.type = 'button';
+            titleBtn.className = 'key-editor-slide-toggle';
+            const totalInSlide = slide.containers.reduce((sum, c) => sum + c.entries.length, 0);
+            titleBtn.textContent = `${slide.label} · ${slide.containers.length} container(s), ${totalInSlide} key(s)`;
+            titleBtn.addEventListener('click', () => {
+                slideEl.classList.toggle('is-collapsed');
+            });
+            header.appendChild(titleBtn);
+
+            const prefixGroup = document.createElement('div');
+            prefixGroup.className = 'key-editor-inline-actions';
+            const prefixInput = document.createElement('input');
+            prefixInput.type = 'text';
+            prefixInput.placeholder = 'Prefix (e.g. s5_)';
+            prefixInput.className = 'key-editor-inline-input';
+            const prefixStatus = document.createElement('span');
+            prefixStatus.className = 'key-editor-inline-status';
+            const runPrefix = () => {
+                const result = applyPrefixToSlide(slide, prefixInput.value.trim());
+                if (result.ok) {
+                    prefixInput.value = '';
+                    flashStatus(prefixStatus, `Applied to ${result.count} key(s)`, 'ok');
+                } else {
+                    flashStatus(prefixStatus, result.error, 'err');
+                }
+            };
+            prefixInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    runPrefix();
+                }
+            });
+            const prefixBtn = document.createElement('button');
+            prefixBtn.type = 'button';
+            prefixBtn.textContent = 'Apply prefix';
+            prefixBtn.addEventListener('click', runPrefix);
+            prefixGroup.appendChild(prefixInput);
+            prefixGroup.appendChild(prefixBtn);
+            prefixGroup.appendChild(prefixStatus);
+            header.appendChild(prefixGroup);
+
+            slideEl.appendChild(header);
+
+            const slideBody = document.createElement('div');
+            slideBody.className = 'key-editor-slide-body';
+            slideEl.appendChild(slideBody);
+
+            for (const container of slide.containers) {
+                const containerEl = document.createElement('div');
+                containerEl.className = 'key-editor-container';
+
+                const containerHeader = document.createElement('div');
+                containerHeader.className = 'key-editor-container-header';
+
+                const containerTitle = document.createElement('div');
+                containerTitle.className = 'key-editor-container-title';
+                const typeBadge = document.createElement('span');
+                typeBadge.className = 'key-editor-container-type';
+                typeBadge.textContent = container.containerType === 'graphicFrame' ? 'table' : 'shape';
+                containerTitle.appendChild(typeBadge);
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = `${container.shapeName} · ${container.entries.length} paragraph(s)`;
+                containerTitle.appendChild(nameSpan);
+                const projectionSpan = document.createElement('span');
+                projectionSpan.className = 'key-editor-container-projection';
+                containerTitle.appendChild(projectionSpan);
+                containerProjections.push({ container, span: projectionSpan });
+                containerHeader.appendChild(containerTitle);
+
+                const isTable = container.containerType === 'graphicFrame';
+                const showBasename = isTable || container.entries.length > 1;
+                if (showBasename) {
+                    const basenameGroup = document.createElement('div');
+                    basenameGroup.className = 'key-editor-inline-actions';
+                    const basenameInput = document.createElement('input');
+                    basenameInput.type = 'text';
+                    basenameInput.placeholder = 'Basename (e.g. pricing)';
+                    basenameInput.className = 'key-editor-inline-input';
+                    const basenameStatus = document.createElement('span');
+                    basenameStatus.className = 'key-editor-inline-status';
+                    const runBasename = () => {
+                        const result = applyBasenameToContainer(container, basenameInput.value.trim());
+                        if (result.ok) {
+                            basenameInput.value = '';
+                            flashStatus(basenameStatus, `Applied to ${result.count} key(s)`, 'ok');
+                        } else {
+                            flashStatus(basenameStatus, result.error, 'err');
+                        }
+                    };
+                    basenameInput.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            runBasename();
+                        }
+                    });
+                    const basenameBtn = document.createElement('button');
+                    basenameBtn.type = 'button';
+                    basenameBtn.textContent = 'Apply basename';
+                    basenameBtn.addEventListener('click', runBasename);
+                    const basenameResetBtn = document.createElement('button');
+                    basenameResetBtn.type = 'button';
+                    basenameResetBtn.className = 'key-editor-inline-reset';
+                    basenameResetBtn.setAttribute('aria-label', 'Reset basename');
+                    basenameResetBtn.textContent = '×';
+                    basenameResetBtn.addEventListener('click', () => {
+                        const result = resetBasenameInContainer(container);
+                        basenameInput.value = '';
+                        if (result.ok && result.count) {
+                            flashStatus(basenameStatus, `Reset ${result.count} key(s)`, 'ok');
+                        }
+                    });
+                    basenameGroup.appendChild(basenameInput);
+                    basenameGroup.appendChild(basenameBtn);
+                    basenameGroup.appendChild(basenameResetBtn);
+                    basenameGroup.appendChild(basenameStatus);
+                    containerHeader.appendChild(basenameGroup);
+                    basenameControls.push({
+                        container,
+                        input: basenameInput,
+                        applyBtn: basenameBtn,
+                        resetBtn: basenameResetBtn
+                    });
+                }
+
+                containerEl.appendChild(containerHeader);
+
+                for (const entry of container.entries) {
+                    const row = document.createElement('div');
+                    row.className = 'key-editor-row';
+                    row.dataset.entryId = String(entry.id);
+
+                    const keyWrap = document.createElement('div');
+                    keyWrap.className = 'key-input-wrap';
+
+                    const prefixLabel = document.createElement('span');
+                    prefixLabel.className = 'key-input-chip key-input-prefix';
+                    keyWrap.appendChild(prefixLabel);
+
+                    const basenameLabel = document.createElement('span');
+                    basenameLabel.className = 'key-input-chip key-input-basename';
+                    keyWrap.appendChild(basenameLabel);
+
+                    const middleInput = document.createElement('input');
+                    middleInput.type = 'text';
+                    middleInput.className = 'key-input-middle';
+                    middleInput.spellcheck = false;
+                    keyWrap.appendChild(middleInput);
+
+                    const markerLabel = document.createElement('span');
+                    markerLabel.className = 'key-input-chip key-input-marker';
+                    keyWrap.appendChild(markerLabel);
+
+                    row.appendChild(keyWrap);
+
+                    const enPreview = document.createElement('div');
+                    enPreview.className = 'key-en';
+                    enPreview.textContent = entry.text;
+                    enPreview.title = entry.text;
+                    row.appendChild(enPreview);
+
+                    const resetBtn = document.createElement('button');
+                    resetBtn.type = 'button';
+                    resetBtn.className = 'key-reset';
+                    resetBtn.textContent = 'Reset';
+                    row.appendChild(resetBtn);
+
+                    function computeRowParts() {
+                        const marker = splitAutoMarker(entry.currentKey).marker;
+                        const keyid = extractKeyid(entry);
+                        return {
+                            prefix: entry.userPrefix || '',
+                            basename: entry.userBasename || '',
+                            middle: keyid,
+                            marker
+                        };
+                    }
+
+                    function syncRowPartsToEntry() {
+                        const { prefix, basename, middle, marker } = computeRowParts();
+                        const prefixHasFollower = Boolean(basename) || Boolean(middle);
+                        const basenameHasFollower = Boolean(middle);
+                        prefixLabel.textContent = prefix ? (prefixHasFollower ? prefix + '__' : prefix) : '';
+                        prefixLabel.classList.toggle('is-empty', !prefix);
+                        basenameLabel.textContent = basename ? (basenameHasFollower ? basename + '__' : basename) : '';
+                        basenameLabel.classList.toggle('is-empty', !basename);
+                        markerLabel.textContent = marker;
+                        markerLabel.classList.toggle('is-empty', !marker);
+                        if (document.activeElement !== middleInput) {
+                            middleInput.value = middle;
+                        }
+                    }
+
+                    const dedupeEntrySlide = () => {
+                        const s = findSlideForContainer(container);
+                        if (s) deduplicateSlideKeys(s);
+                        refreshAllRowClasses();
+                    };
+
+                    middleInput.addEventListener('input', () => {
+                        const keyid = middleInput.value.trim().replace(/^_+|_+$/g, '');
+                        const marker = splitAutoMarker(entry.currentKey).marker;
+                        entry.keyidIsUserSet = true;
+                        entry.currentKey = composeKey({
+                            userPrefix: entry.userPrefix,
+                            userBasename: entry.userBasename,
+                            keyid,
+                            marker
+                        });
+                        if (entry.currentKey !== entry.autoKey && entry.origin === 'auto') {
+                            entry.origin = 'custom';
+                        } else if (entry.currentKey === entry.autoKey) {
+                            entry.userPrefix = '';
+                            entry.userBasename = '';
+                            entry.keyidIsUserSet = false;
+                            entry.origin = 'auto';
+                            syncRowPartsToEntry();
+                        }
+                        updateRowClass(row, entry);
+                        refreshContainerProjections();
+                        refreshBasenameAvailability();
+                        refreshSummary();
+                    });
+
+                    middleInput.addEventListener('blur', () => {
+                        dedupeEntrySlide();
+                    });
+
+                    resetBtn.addEventListener('click', () => {
+                        entry.currentKey = entry.autoKey;
+                        entry.userPrefix = '';
+                        entry.userBasename = '';
+                        entry.keyidIsUserSet = false;
+                        entry.origin = 'auto';
+                        syncRowPartsToEntry();
+                        dedupeEntrySlide();
+                        updateRowClass(row, entry);
+                        refreshContainerProjections();
+                        refreshBasenameAvailability();
+                        refreshSummary();
+                    });
+
+                    row._syncRowParts = syncRowPartsToEntry;
+                    syncRowPartsToEntry();
+                    updateRowClass(row, entry);
+                    containerEl.appendChild(row);
+                }
+
+                slideBody.appendChild(containerEl);
+            }
+
+            tree.appendChild(slideEl);
+        }
+
+        const downloadPptxBtn = document.createElement('button');
+        downloadPptxBtn.type = 'button';
+        downloadPptxBtn.textContent = 'Download PPTX';
+        const pptxLabel = downloadPptxBtn.textContent;
+        downloadPptxBtn.addEventListener('click', async () => {
+            downloadPptxBtn.disabled = true;
+            downloadPptxBtn.textContent = 'Preparing…';
+            try {
+                const renames = computeShapeRenames(draft.flatEntries);
+                const blob = await applyShapeNamesToPptx(markedBlob, renames);
+                triggerBlobDownload(blob, markedFilename);
+            } catch (err) {
+                markupError.textContent = 'Error: ' + err.message;
+            } finally {
+                downloadPptxBtn.disabled = false;
+                downloadPptxBtn.textContent = pptxLabel;
+            }
+        });
+        downloadsWrap.appendChild(downloadPptxBtn);
+
+        const xlsxName = markedFilename.replace(/\.pptx$/i, '.xlsx');
+        const downloadXlsxBtn = document.createElement('button');
+        downloadXlsxBtn.type = 'button';
+        downloadXlsxBtn.textContent = 'Download XLSX';
+        downloadXlsxBtn.addEventListener('click', () => {
+            const rows = buildXlsxRowsFromEntries(draft.flatEntries, lang);
+            const blob = createWorkbookBlob(rows, 'Translations');
+            triggerBlobDownload(blob, xlsxName);
+        });
+        downloadsWrap.appendChild(downloadXlsxBtn);
+
+        const allMessages = [
+            ...(markupResult ? markupResult.warnings : []),
+            ...(extractWarnings || [])
+        ];
+        renderKeyEditorWarnings(warningsHost, allMessages);
+        renderKeyEditorReport(markupDownload, [
+            `Marked ${markupResult.renamedCount} of ${markupResult.containerCount} text containers.`,
+            `Kept ${markupResult.keptCount} existing translation IDs.`,
+            `Extracted ${draft.flatEntries.length} paragraph entries for ${lang}.`
+        ], allMessages, `${baseName}_prepare`);
+
+        refreshContainerProjections();
+        refreshBasenameAvailability();
+        refreshSummary();
+    }
+
+    function renderKeyEditorWarnings(host, messages) {
+        host.innerHTML = '';
+        if (!messages || !messages.length) return;
+
+        const migrate = messages.filter(m => m.severity !== 'info' && m.migrate);
+        const otherWarnings = messages.filter(m => m.severity !== 'info' && !m.migrate);
+
+        if (migrate.length) host.appendChild(buildMigrateWarningsSection(migrate));
+        if (otherWarnings.length) host.appendChild(buildPlainWarningsSection(otherWarnings));
+    }
+
+    function buildMigrateWarningsSection(items) {
+        const wrap = document.createElement('div');
+        wrap.className = 'key-editor-warnings-section';
+
+        const title = document.createElement('div');
+        title.className = 'key-editor-warnings-title';
+        title.textContent = `Previous XLSX: ${items.length} key${items.length === 1 ? '' : 's'} could not be migrated`;
+        wrap.appendChild(title);
+
+        const table = document.createElement('table');
+        table.className = 'key-editor-warnings-table';
+
+        const thead = document.createElement('thead');
+        const headRow = document.createElement('tr');
+        for (const label of ['Old key', 'Source text', 'Shape', 'Slide', 'Issue']) {
+            const th = document.createElement('th');
+            th.textContent = label;
+            headRow.appendChild(th);
+        }
+        thead.appendChild(headRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement('tbody');
+        for (const w of items) {
+            const tr = document.createElement('tr');
+            const kindClass = w.kind === 'ambiguous' ? 'is-ambiguous' : 'is-orphaned';
+            tr.classList.add(kindClass);
+
+            const keyCell = document.createElement('td');
+            const keyCode = document.createElement('code');
+            keyCode.textContent = w.key || '';
+            keyCell.appendChild(keyCode);
+            tr.appendChild(keyCell);
+
+            const textCell = document.createElement('td');
+            textCell.className = 'key-editor-warnings-text';
+            textCell.textContent = w.text || '—';
+            if (w.text) textCell.title = w.text;
+            tr.appendChild(textCell);
+
+            const shapeCell = document.createElement('td');
+            if (w.shapeName) {
+                const shapeCode = document.createElement('code');
+                shapeCode.textContent = w.shapeName;
+                shapeCell.appendChild(shapeCode);
+            } else {
+                shapeCell.textContent = '—';
+            }
+            tr.appendChild(shapeCell);
+
+            const slideCell = document.createElement('td');
+            slideCell.textContent = w.slideNumber || '—';
+            tr.appendChild(slideCell);
+
+            const issueCell = document.createElement('td');
+            issueCell.className = 'key-editor-warnings-issue ' + kindClass;
+            issueCell.textContent = formatMigrateIssue(w);
+            tr.appendChild(issueCell);
+
+            tbody.appendChild(tr);
+        }
+        table.appendChild(tbody);
+        wrap.appendChild(table);
+        return wrap;
+    }
+
+    function formatMigrateIssue(w) {
+        if (w.kind === 'ambiguous') {
+            if (w.reason === 'matches-multiple') return `Matches ${w.matchCount} paragraphs — skipped`;
+            if (w.reason === 'conflict') return 'Conflicts with another migrated key — skipped';
+            return 'Ambiguous — skipped';
+        }
+        if (w.reason === 'source-not-found') return 'Source text not found (cell removed or edited)';
+        if (w.reason === 'already-migrated') return 'All matching paragraphs already taken';
+        if (w.reason === 'no-shape-name') return 'No shapeName column in old XLSX';
+        if (w.reason === 'empty-text') return 'Empty source text in old XLSX';
+        return 'Orphaned';
+    }
+
+    function buildPlainWarningsSection(items) {
+        const wrap = document.createElement('div');
+        wrap.className = 'key-editor-warnings-section';
+
+        const title = document.createElement('div');
+        title.className = 'key-editor-warnings-title';
+        title.textContent = `${items.length} warning${items.length === 1 ? '' : 's'}`;
+        wrap.appendChild(title);
+
+        const list = document.createElement('ul');
+        list.className = 'key-editor-warnings-list';
+        const limit = 12;
+        for (const w of items.slice(0, limit)) {
+            const li = document.createElement('li');
+            li.textContent = w.message;
+            list.appendChild(li);
+        }
+        if (items.length > limit) {
+            const more = document.createElement('li');
+            more.className = 'key-editor-warnings-more';
+            more.textContent = `...and ${items.length - limit} more (see full report)`;
+            list.appendChild(more);
+        }
+        wrap.appendChild(list);
+        return wrap;
+    }
+
+    function renderKeyEditorReport(target, summaryLines, messages, reportBaseName) {
+        const info = document.createElement('div');
+        info.style.cssText = 'color: #6bbd6b; font-size: 0.85rem; margin-top: 12px;';
+        info.innerHTML = summaryLines.map(line => `<div>${line}</div>`).join('');
+        target.appendChild(info);
+
+        const informational = messages.filter(m => m.severity === 'info');
+        const warnings = messages.filter(m => m.severity !== 'info');
+
+        if (informational.length) {
+            const infoBox = document.createElement('div');
+            infoBox.style.cssText = 'color: #9aa0a6; font-size: 0.85rem; margin-top: 8px;';
+            infoBox.appendChild(document.createTextNode(`${informational.length} informational message(s):`));
+            appendMessageList(infoBox, informational);
+            target.appendChild(infoBox);
+        }
+
+        if (warnings.length || informational.length) {
+            const reportBlob = createWarningsBlob(messages);
+            const reportLink = createDownloadLink(
+                reportBlob,
+                `${reportBaseName}_report.xlsx`,
+                'Download full report'
+            );
+            const reportWrap = document.createElement('div');
+            reportWrap.style.cssText = 'margin-top: 6px; font-size: 0.85rem;';
+            reportWrap.appendChild(reportLink);
+            target.appendChild(reportWrap);
+        }
     }
 
     function parseXlsxFile(file) {
@@ -707,7 +1948,8 @@
 
         const shapeName = String(row[headerIndex.get('shapeName')] || '').trim();
         const paragraphIndex = String(row[headerIndex.get('paragraphIndex')] ?? '').trim();
-        return shapeName && paragraphIndex ? `${shapeName}__p${paragraphIndex}` : '';
+        if (shapeName && paragraphIndex) return `${shapeName}__p${paragraphIndex}`;
+        return '';
     }
 
     function getOptionalCell(row, headerIndex, column) {
@@ -716,11 +1958,36 @@
     }
 
     function parseTranslationKey(key) {
-        const match = String(key || '').trim().match(/^(.+)__p(\d+)$/);
-        if (!match) return { shapeName: '', paragraphIndex: NaN };
+        const value = String(key || '').trim();
+
+        const pMatch = value.match(AUTO_KEY_PARAGRAPH_RE);
+        if (pMatch) {
+            return {
+                shapeName: pMatch[1],
+                paragraphIndex: parseInt(pMatch[2], 10),
+                enHash: '',
+                collisionIndex: 0,
+                isCustom: false
+            };
+        }
+
+        const hMatch = value.match(AUTO_KEY_HASH_RE);
+        if (hMatch) {
+            return {
+                shapeName: hMatch[1],
+                paragraphIndex: NaN,
+                enHash: hMatch[2].toLowerCase(),
+                collisionIndex: hMatch[3] ? parseInt(hMatch[3], 10) : 1,
+                isCustom: false
+            };
+        }
+
         return {
-            shapeName: match[1],
-            paragraphIndex: parseInt(match[2], 10)
+            shapeName: '',
+            paragraphIndex: NaN,
+            enHash: '',
+            collisionIndex: 0,
+            isCustom: Boolean(value)
         };
     }
 
@@ -1306,6 +2573,16 @@
 
         const fontColumn = metricColumnName(language.code, 'fontPt');
         const fontColumnIndex = headerIndex.get(fontColumn);
+
+        // Detect the source-language column for routing custom keys.
+        // The Prepare PPTX step writes the source language first (typically EN);
+        // we prefer a language column different from the target.
+        const languageColumns = getLanguageColumns(header);
+        let sourceColumnIndex = null;
+        const preferred = languageColumns.find(col => col.code !== language.code);
+        if (preferred) sourceColumnIndex = preferred.index;
+        else if (languageColumns.length) sourceColumnIndex = languageColumns[0].index;
+
         const rows = [];
         let skippedEmpty = 0;
 
@@ -1337,6 +2614,10 @@
                 shapeId: String(getOptionalCell(sourceRow, headerIndex, 'shapeId') || '').trim(),
                 containerType: String(getOptionalCell(sourceRow, headerIndex, 'containerType') || '').trim(),
                 paragraphIndex: parsedKey.paragraphIndex,
+                enHash: parsedKey.enHash,
+                collisionIndex: parsedKey.collisionIndex,
+                isCustom: parsedKey.isCustom,
+                sourceText: sourceColumnIndex !== null ? String(sourceRow[sourceColumnIndex] || '') : '',
                 text: String(value),
                 fontPt,
                 fontRaw: fontPt ? String(fontPt) : '',
@@ -1999,11 +3280,15 @@
         }
 
         for (const row of translationRows) {
-            if (!row.key || !row.shapeName || Number.isNaN(row.paragraphIndex)) {
+            const hasParagraphIndex = Number.isFinite(row.paragraphIndex);
+            const hasHashRoute = Boolean(row.enHash);
+            const hasCustomRoute = Boolean(row.isCustom);
+
+            if (!row.key || !row.shapeName || (!hasParagraphIndex && !hasHashRoute && !hasCustomRoute)) {
                 warnings.push(createWarning('invalid-row', `XLSX row ${row.rowNumber}: missing or invalid key.`, {
                     key: row.key,
                     shapeName: row.shapeName,
-                    paragraphIndex: Number.isNaN(row.paragraphIndex) ? '' : row.paragraphIndex
+                    paragraphIndex: hasParagraphIndex ? row.paragraphIndex : ''
                 }));
                 continue;
             }
@@ -2033,10 +3318,48 @@
                 }));
             }
 
-            const paragraph = container.paragraphs[row.paragraphIndex];
-            if (!paragraph) {
-                warnings.push(createWarning('missing-paragraph', `XLSX row ${row.rowNumber}: paragraph ${row.paragraphIndex} not found in "${row.shapeName}".`, row));
-                continue;
+            let paragraph = null;
+            let resolvedParagraphIndex = hasParagraphIndex ? row.paragraphIndex : -1;
+
+            if (hasHashRoute) {
+                const candidates = container.nonEmptyParagraphs.filter(
+                    p => shortHashFromText(p.text) === row.enHash
+                );
+                const targetIndex = Math.max(0, (row.collisionIndex || 1) - 1);
+                if (!candidates.length || !candidates[targetIndex]) {
+                    warnings.push(createWarning('text-not-found-by-hash', `XLSX row ${row.rowNumber}: no paragraph in "${row.shapeName}" matches the EN hash. Re-run Prepare PPTX.`, row));
+                    continue;
+                }
+                paragraph = candidates[targetIndex].paragraph;
+                resolvedParagraphIndex = candidates[targetIndex].paragraphIndex;
+            } else if (hasCustomRoute) {
+                const anchorText = row.sourceText && String(row.sourceText).trim()
+                    ? row.sourceText
+                    : row.text;
+                const normAnchor = normalizeTextForKey(anchorText);
+                if (!normAnchor) {
+                    warnings.push(createWarning('custom-key-text-not-found', `XLSX row ${row.rowNumber}: custom key "${row.key}" has no source text to match; skipped.`, row));
+                    continue;
+                }
+                const candidates = container.nonEmptyParagraphs.filter(
+                    p => normalizeTextForKey(p.text) === normAnchor
+                );
+                if (candidates.length === 0) {
+                    warnings.push(createWarning('custom-key-text-not-found', `XLSX row ${row.rowNumber}: custom key "${row.key}" — source text not found in "${row.shapeName}".`, row));
+                    continue;
+                }
+                if (candidates.length > 1) {
+                    warnings.push(createWarning('custom-key-ambiguous-en', `XLSX row ${row.rowNumber}: custom key "${row.key}" matches ${candidates.length} paragraphs in "${row.shapeName}"; skipped.`, row));
+                    continue;
+                }
+                paragraph = candidates[0].paragraph;
+                resolvedParagraphIndex = candidates[0].paragraphIndex;
+            } else {
+                paragraph = container.paragraphs[row.paragraphIndex];
+                if (!paragraph) {
+                    warnings.push(createWarning('missing-paragraph', `XLSX row ${row.rowNumber}: paragraph ${row.paragraphIndex} not found in "${row.shapeName}".`, row));
+                    continue;
+                }
             }
 
             if (row.fontRaw && (!Number.isFinite(row.fontPt) || row.fontPt <= 0)) {
@@ -2053,7 +3376,7 @@
                 warnings.push(createWarning(parseWarning.type || 'invalid-rich-text', `${parseWarning.message} (XLSX row ${row.rowNumber}).`, row));
             }
             if (!replaceResult.success) {
-                warnings.push(createWarning('missing-text-run', `XLSX row ${row.rowNumber}: paragraph ${row.paragraphIndex} in "${row.shapeName}" has no editable text run.`, row));
+                warnings.push(createWarning('missing-text-run', `XLSX row ${row.rowNumber}: paragraph ${resolvedParagraphIndex} in "${row.shapeName}" has no editable text run.`, row));
                 continue;
             }
 
@@ -2119,6 +3442,13 @@
             markupFile = file;
             showFilename(pptxMarkupFilename, file.name);
             markupBtn.disabled = false;
+            markupDownload.innerHTML = '';
+            markupError.textContent = '';
+        });
+
+        setupSingleDropzone(prepareOldXlsxDropzone, prepareOldXlsxInput, prepareOldXlsxFilename, '.xlsx', (file) => {
+            previousXlsxFile = file;
+            showFilename(prepareOldXlsxFilename, file.name);
             markupDownload.innerHTML = '';
             markupError.textContent = '';
         });

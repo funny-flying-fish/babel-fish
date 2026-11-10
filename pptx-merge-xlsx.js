@@ -169,8 +169,32 @@
             }));
     }
 
+    function shapeNameFromKey(key) {
+        const value = String(key || '').trim();
+        if (!value) return '';
+        const match = value.match(/^(.+?)__[hp]/i);
+        return match ? match[1] : '';
+    }
+
+    function shapeNameFromRow(row, headerIndex) {
+        if (headerIndex.has('shapename')) {
+            const value = String(row[headerIndex.get('shapename')] || '').trim();
+            if (value) return value;
+        }
+        const key = normalizeKey(row[headerIndex.get('key')]);
+        return shapeNameFromKey(key);
+    }
+
+    function buildShapeEnKey(shapeName, enValue) {
+        const normalizedEn = plainEnForCompare(enValue);
+        if (!shapeName || !normalizedEn) return '';
+        return `${shapeName}|${normalizedEn}`;
+    }
+
     function buildOldLookup(oldRows, oldHeaderIndex) {
         const lookup = new Map();
+        const lookupByShapeEn = new Map();
+        const ambiguousShapeEn = new Set();
         let duplicateKeys = 0;
 
         for (let rowIndex = 1; rowIndex < oldRows.length; rowIndex++) {
@@ -182,9 +206,23 @@
                 continue;
             }
             lookup.set(key, row);
+
+            const shapeName = shapeNameFromRow(row, oldHeaderIndex);
+            const enValue = row[oldHeaderIndex.get('en')];
+            const shapeEnKey = buildShapeEnKey(shapeName, enValue);
+            if (!shapeEnKey) continue;
+            if (lookupByShapeEn.has(shapeEnKey)) {
+                ambiguousShapeEn.add(shapeEnKey);
+            } else {
+                lookupByShapeEn.set(shapeEnKey, row);
+            }
         }
 
-        return { lookup, duplicateKeys };
+        for (const shapeEnKey of ambiguousShapeEn) {
+            lookupByShapeEn.delete(shapeEnKey);
+        }
+
+        return { lookup, lookupByShapeEn, duplicateKeys };
     }
 
     function buildOutputHeader(newHeader, oldTranslationColumns) {
@@ -226,10 +264,11 @@
         }
 
         const outputHeader = buildOutputHeader(newHeader, oldTranslationColumns);
-        const { lookup: oldLookup, duplicateKeys } = buildOldLookup(oldRows, oldHeaderIndex);
+        const { lookup: oldLookup, lookupByShapeEn, duplicateKeys } = buildOldLookup(oldRows, oldHeaderIndex);
         const outputRows = [outputHeader];
         const changedEnDetails = [];
         let matchedRows = 0;
+        let matchedByEnFallback = 0;
         let missingKeys = 0;
         let changedEnRows = 0;
         let forceSavedRows = 0;
@@ -239,8 +278,20 @@
             const newRow = newRows[rowIndex] || [];
             const outputRow = outputHeader.map((_, columnIndex) => newRow[columnIndex] ?? '');
             const key = normalizeKey(newRow[newHeaderIndex.get('key')]);
-            const oldRow = key ? oldLookup.get(key) : null;
+            let oldRow = key ? oldLookup.get(key) : null;
+            let matchedBy = oldRow ? 'key' : 'none';
+
             const newEn = newRow[newHeaderIndex.get('en')];
+
+            if (!oldRow) {
+                const shapeName = shapeNameFromRow(newRow, newHeaderIndex);
+                const shapeEnKey = buildShapeEnKey(shapeName, newEn);
+                if (shapeEnKey && lookupByShapeEn.has(shapeEnKey)) {
+                    oldRow = lookupByShapeEn.get(shapeEnKey);
+                    matchedBy = 'en-fallback';
+                }
+            }
+
             const oldEn = oldRow ? oldRow[oldHeaderIndex.get('en')] : '';
             const enMatchesNatural = oldRow && enTextsMatchForMerge(newEn, oldEn);
             const forceSave = Boolean(key && saveKeys.has(key));
@@ -257,6 +308,7 @@
                 });
             } else {
                 matchedRows++;
+                if (matchedBy === 'en-fallback') matchedByEnFallback++;
                 if (!enMatchesNatural && forceSave) forceSavedRows++;
             }
 
@@ -277,6 +329,7 @@
             summary: {
                 processedRows: Math.max(0, newRows.length - 1),
                 matchedRows,
+                matchedByEnFallback,
                 missingKeys,
                 changedEnRows,
                 forceSavedRows,
@@ -306,6 +359,9 @@
             `Missing key in old XLSX: ${summary.missingKeys} row(s).`,
             `Changed EN text: ${summary.changedEnRows} row(s).`
         ];
+        if (summary.matchedByEnFallback > 0) {
+            lines.push(`Matched by EN fallback (key shifted): ${summary.matchedByEnFallback} row(s).`);
+        }
         if (summary.forceSavedRows > 0) {
             lines.push(`Saved despite EN change: ${summary.forceSavedRows} row(s).`);
         }
@@ -341,7 +397,7 @@
         section.style.cssText = 'margin-top: 14px;';
 
         const title = document.createElement('div');
-        title.textContent = 'Changed EN — review and save translations';
+        title.textContent = 'Changed EN ï¿½ review and save translations';
         title.style.cssText = 'font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;';
         section.appendChild(title);
 

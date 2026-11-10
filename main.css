@@ -219,6 +219,11 @@ button:disabled {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    width: 100%;
+    min-width: 0;
+}
+.download-area .key-editor {
+    width: 100%;
 }
 .download-area a {
     color: #4da6ff;
@@ -512,6 +517,386 @@ button:disabled {
 }
 .dropzone.has-files {
     padding-bottom: 16px;
+}
+.dropzone--optional {
+    padding: 16px 18px;
+    margin-top: 10px;
+    border-color: #333;
+    border-style: dashed;
+}
+.dropzone--optional .dropzone-icon {
+    font-size: 1.3rem;
+    margin-bottom: 4px;
+}
+.dropzone--optional .dropzone-text {
+    font-size: 0.85rem;
+}
+
+/* Key editor (Prepare PPTX) */
+.key-editor {
+    margin-top: 14px;
+    width: 100%;
+    min-width: 0;
+}
+.key-editor-summary {
+    color: #aaa;
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+}
+.key-editor-summary strong {
+    color: #d8d8d8;
+}
+.key-editor-warnings:empty {
+    display: none;
+}
+.key-editor-warnings {
+    margin: 6px 0 14px;
+}
+.key-editor-warnings-section + .key-editor-warnings-section {
+    margin-top: 14px;
+}
+.key-editor-warnings-title {
+    color: #e8b64c;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+.key-editor-warnings-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+    background: #161616;
+    border: 1px solid #262626;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.key-editor-warnings-table thead th {
+    text-align: left;
+    color: #9aa3b0;
+    font-weight: 500;
+    padding: 7px 10px;
+    border-bottom: 1px solid #2c2c2c;
+    background: #1c1c1c;
+    white-space: nowrap;
+}
+.key-editor-warnings-table tbody td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #1c1c1c;
+    vertical-align: top;
+    color: #ccc;
+}
+.key-editor-warnings-table tbody tr:last-child td {
+    border-bottom: none;
+}
+.key-editor-warnings-table tbody td code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: #f5d182;
+    font-size: 0.76rem;
+    word-break: break-all;
+}
+.key-editor-warnings-table tr.is-ambiguous td:first-child {
+    border-left: 3px solid #e8b64c;
+}
+.key-editor-warnings-table tr.is-orphaned td:first-child {
+    border-left: 3px solid #ff8480;
+}
+.key-editor-warnings-text {
+    max-width: none;
+    word-break: break-word;
+}
+.key-editor-warnings-issue {
+    white-space: nowrap;
+    font-weight: 500;
+}
+.key-editor-warnings-issue.is-ambiguous {
+    color: #e8b64c;
+}
+.key-editor-warnings-issue.is-orphaned {
+    color: #ff8480;
+}
+.key-editor-warnings-list {
+    margin: 0;
+    padding-left: 20px;
+    color: #e8b64c;
+    font-size: 0.82rem;
+}
+.key-editor-warnings-list li {
+    margin: 3px 0;
+}
+.key-editor-warnings-list .key-editor-warnings-more {
+    color: #888;
+    list-style: none;
+    margin-left: -20px;
+    font-size: 0.78rem;
+}
+.key-editor-main {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    width: 100%;
+}
+.key-editor-tree {
+    flex: 0 1 800px;
+    width: 100%;
+    max-width: 800px;
+    min-width: 0;
+}
+.key-editor-slide {
+    margin-bottom: 14px;
+}
+.key-editor-slide-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid #262626;
+    flex-wrap: wrap;
+    width: 100%;
+}
+.key-editor-slide-body {
+    width: 100%;
+    min-width: 0;
+}
+.key-editor-slide-toggle {
+    background: transparent;
+    color: #cfcfcf;
+    border: none;
+    padding: 0;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: left;
+    flex: 1;
+    min-width: 0;
+}
+.key-editor-slide-toggle::before {
+    content: '▾';
+    display: inline-block;
+    margin-right: 6px;
+    color: #888;
+}
+.key-editor-slide.is-collapsed .key-editor-slide-toggle::before {
+    content: '▸';
+}
+.key-editor-slide.is-collapsed .key-editor-slide-body {
+    display: none;
+}
+.key-editor-inline-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-shrink: 0;
+}
+.key-editor-inline-input {
+    background: #111;
+    color: #eee;
+    border: 1px solid #2b2b2b;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    width: 200px;
+}
+.key-editor-inline-input:focus {
+    border-color: #4da6ff;
+    outline: none;
+}
+.key-editor-inline-input:disabled {
+    background: #0c0c0c;
+    color: #555;
+    border-color: #1f1f1f;
+    cursor: not-allowed;
+}
+.key-editor-inline-actions button {
+    padding: 4px 10px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+.key-editor-inline-actions button:disabled {
+    background: #2a2a2a;
+    color: #555;
+    cursor: not-allowed;
+}
+.key-editor-inline-reset {
+    background: transparent;
+    color: #888;
+    border: 1px solid #2b2b2b;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.95rem;
+    line-height: 1;
+    cursor: pointer;
+}
+.key-editor-inline-reset:hover:not(:disabled) {
+    color: #ff8480;
+    border-color: #5a2222;
+}
+.key-editor-inline-reset:disabled {
+    background: transparent;
+    color: #333;
+    border-color: #1a1a1a;
+    cursor: not-allowed;
+}
+.key-editor-inline-status {
+    font-size: 0.75rem;
+    color: transparent;
+    min-width: 0;
+    transition: color 0.15s ease;
+}
+.key-editor-inline-status.is-ok {
+    color: #6fcf97;
+}
+.key-editor-inline-status.is-err {
+    color: #ff8480;
+}
+.key-editor-container {
+    padding: 6px 0 10px 12px;
+    border-bottom: 1px solid #1c1c1c;
+}
+.key-editor-container:last-child {
+    border-bottom: none;
+}
+.key-editor-container-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 0;
+    flex-wrap: wrap;
+    width: 100%;
+}
+.key-editor-container-title {
+    color: #9aa3b0;
+    font-size: 0.8rem;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex: 1 1 auto;
+    min-width: 120px;
+    flex-wrap: wrap;
+}
+.key-editor-container-type {
+    color: #5b8bff;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 6px;
+    background: rgba(91, 139, 255, 0.12);
+    border-radius: 3px;
+}
+.key-editor-container-projection {
+    color: #6fcf97;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.76rem;
+    overflow-wrap: anywhere;
+}
+.key-editor-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2.2fr) minmax(140px, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 0.82rem;
+    width: 100%;
+}
+.key-editor-row + .key-editor-row {
+    border-top: 1px solid #1c1c1c;
+}
+.key-input-wrap {
+    display: flex;
+    align-items: stretch;
+    background: #111;
+    border: 1px solid #2b2b2b;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.78rem;
+    min-width: 0;
+    width: 100%;
+    overflow-x: auto;
+}
+.key-input-wrap:focus-within {
+    border-color: #4da6ff;
+}
+.key-input-chip {
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    color: #6b6b6b;
+    background: #181818;
+    user-select: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.key-input-chip.is-empty {
+    display: none;
+}
+.key-input-prefix {
+    color: #b3a16b;
+}
+.key-input-basename {
+    color: #8ab37a;
+}
+.key-input-middle {
+    flex: 1 1 80px;
+    min-width: 48px;
+    background: transparent;
+    color: #ddd;
+    border: none;
+    padding: 4px 6px;
+    font-family: inherit;
+    font-size: inherit;
+}
+.key-input-middle:focus {
+    outline: none;
+}
+.key-editor-row.is-custom .key-input-middle {
+    color: #f5d182;
+}
+.key-editor-row.is-custom .key-input-wrap {
+    border-color: #4a3f1f;
+}
+.key-editor-row.is-preserved .key-input-middle {
+    color: #82d8b3;
+}
+.key-editor-row.is-preserved .key-input-wrap {
+    border-color: #1f4a36;
+}
+.key-editor-row .key-en {
+    color: #888;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.key-editor-row .key-reset {
+    background: transparent;
+    color: #666;
+    border: 1px solid #2b2b2b;
+    border-radius: 3px;
+    padding: 2px 7px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+.key-editor-row .key-reset:hover {
+    color: #aaa;
+    border-color: #444;
+}
+.key-editor-row .key-reset:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+.key-editor-downloads {
+    position: sticky;
+    top: 16px;
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+}
+.key-editor-downloads button {
+    white-space: nowrap;
 }
 .dropzone-icon {
     font-size: 2rem;

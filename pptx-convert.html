@@ -30,7 +30,7 @@
         <div class="main-column">
             <!-- Tab 1: Prepare PPTX -->
             <div class="tab-content active" id="tab-prepare-pptx">
-                <div class="section section--side-panel">
+                <div class="section">
                     <div class="section-heading">
                         <h2>Prepare PPTX</h2>
                         <a href="help/prepare-pptx.html" class="help-button" target="_blank" rel="noopener">Help</a>
@@ -44,6 +44,13 @@
                         <div class="dropzone-text">Drop .pptx file here or <span class="dropzone-link">browse</span></div>
                         <div class="dropzone-hint">Original or already marked presentation</div>
                         <div class="dropzone-filename" id="pptxMarkupFilename"></div>
+                    </div>
+                    <div class="dropzone dropzone--optional" id="prepareOldXlsxDropzone">
+                        <input type="file" id="prepareOldXlsxInput" accept=".xlsx" hidden>
+                        <div class="dropzone-icon">🗂</div>
+                        <div class="dropzone-text">Optional: drop previous .xlsx to keep custom keys</div>
+                        <div class="dropzone-hint">Custom (non-auto) keys are migrated by EN-text within the same table</div>
+                        <div class="dropzone-filename" id="prepareOldXlsxFilename"></div>
                     </div>
                     <div class="form-row" style="margin-top: 12px;">
                         <label for="sourceLanguage">Source language:</label>
@@ -68,7 +75,7 @@
 
             <!-- Tab 2: XLSX → PPTX -->
             <div class="tab-content" id="tab-xlsx-to-pptx">
-                <div class="section section--side-panel">
+                <div class="section">
                     <div class="section-heading">
                         <h2>XLSX → PPTX</h2>
                         <a href="help/xlsx-to-pptx.html" class="help-button" target="_blank" rel="noopener">Help</a>

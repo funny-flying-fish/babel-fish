@@ -106,11 +106,23 @@
 
         <h3>XLSX format</h3>
         <table>
-            <tr><th>key</th><th>EN</th><th>PL</th><th>DE</th></tr>
-            <tr><td><code>tr_7f3a91_body__p0</code></td><td>Original text</td><td>Polish text</td><td>German text</td></tr>
+            <tr><th>key</th><th>shapeName</th><th>slideNumber</th><th>EN</th><th>PL</th><th>DE</th></tr>
+            <tr><td><code>tr_7f3a91_body__p0</code></td><td><code>tr_7f3a91_body</code></td><td>1</td><td>Original text</td><td>Polish text</td><td>German text</td></tr>
+            <tr><td><code>tr_6ae152_table__h1a2b3c</code></td><td><code>tr_6ae152_table</code></td><td>5</td><td>150 km, 3 kg WH</td><td>...</td><td>...</td></tr>
+            <tr><td><code>pricing.product_name</code></td><td><code>tr_6ae152_table</code></td><td>5</td><td>Hornet B2</td><td>...</td><td>...</td></tr>
         </table>
 
-        <p><strong>Do not edit the <code>key</code> column.</strong> It tells the tool where each line belongs. Add translation columns next to the source column, for example <code>PL</code>, <code>DE</code>, <code>FR</code>.</p>
+        <p><strong>You can edit the <code>key</code> column.</strong> Auto keys (<code>__p&lt;N&gt;</code> for shapes and <code>__h&lt;hash&gt;</code> for table cells) regenerate on each Prepare PPTX run. Custom names you choose survive across runs if you drop the previous XLSX into the optional zone on the Prepare PPTX tab. Add translation columns next to the source column, for example <code>PL</code>, <code>DE</code>, <code>FR</code>. Do not edit <code>shapeName</code> or <code>slideNumber</code>.</p>
+
+        <h3>Key editor and bulk operations</h3>
+        <p>After Prepare PPTX extracts text, a key editor appears with all entries grouped by slide and table. You can:</p>
+        <ul>
+            <li>Inline-rename any single key.</li>
+            <li>Apply a prefix to every key on a chosen slide (e.g. <code>s5_</code>).</li>
+            <li>Apply a basename to a chosen table; paragraphs become <code>&lt;basename&gt;_1</code>, <code>&lt;basename&gt;_2</code>, ...</li>
+            <li>Reset selected keys back to their auto-generated value.</li>
+        </ul>
+        <p>Adding rows to a PPTX table no longer shifts the keys, because table-cell keys are derived from a content hash of the source text.</p>
 
         <h3>Inline formatting (bold / italic)</h3>
         <p>If one paragraph mixes regular, bold, and italic text in PowerPoint, the export uses a small markdown dialect in the cell:</p>
@@ -173,7 +185,7 @@
         <p>Yes. Empty translation cells are skipped.</p>
 
         <h3>What should I never change?</h3>
-        <p>Do not change <code>key</code>. You can edit language text and add new language columns.</p>
+        <p>Do not change <code>shapeName</code> or <code>slideNumber</code>. You can edit <code>key</code>, language text, and add new language columns.</p>
     </div>
 
     <!-- RUSSIAN VERSION -->
@@ -230,11 +242,23 @@
 
         <h3>Формат XLSX</h3>
         <table>
-            <tr><th>key</th><th>EN</th><th>PL</th><th>DE</th></tr>
-            <tr><td><code>tr_7f3a91_body__p0</code></td><td>Original text</td><td>Polski tekst</td><td>Deutscher Text</td></tr>
+            <tr><th>key</th><th>shapeName</th><th>slideNumber</th><th>EN</th><th>PL</th><th>DE</th></tr>
+            <tr><td><code>tr_7f3a91_body__p0</code></td><td><code>tr_7f3a91_body</code></td><td>1</td><td>Original text</td><td>Polski tekst</td><td>Deutscher Text</td></tr>
+            <tr><td><code>tr_6ae152_table__h1a2b3c</code></td><td><code>tr_6ae152_table</code></td><td>5</td><td>150 km, 3 kg WH</td><td>...</td><td>...</td></tr>
+            <tr><td><code>pricing.product_name</code></td><td><code>tr_6ae152_table</code></td><td>5</td><td>Hornet B2</td><td>...</td><td>...</td></tr>
         </table>
 
-        <p><strong>Колонку <code>key</code> не меняем.</strong> Она говорит инструменту, куда вернуть каждую строку. Рядом можно добавлять языковые колонки: <code>PL</code>, <code>DE</code>, <code>FR</code> и так далее.</p>
+        <p><strong>Колонку <code>key</code> можно редактировать.</strong> Авто-ключи (<code>__p&lt;N&gt;</code> для shapes и <code>__h&lt;hash&gt;</code> для ячеек таблиц) перегенерируются на каждом Prepare PPTX. Ваши кастомные имена сохраняются между запусками, если бросить предыдущий XLSX в опциональную зону на вкладке Prepare PPTX. Рядом можно добавлять языковые колонки: <code>PL</code>, <code>DE</code>, <code>FR</code> и так далее. Колонки <code>shapeName</code> и <code>slideNumber</code> менять нельзя.</p>
+
+        <h3>Редактор ключей и массовые операции</h3>
+        <p>После Prepare PPTX появляется редактор ключей со всеми записями, сгруппированными по слайдам и таблицам. В нём можно:</p>
+        <ul>
+            <li>Inline-переименовать любой отдельный ключ.</li>
+            <li>Применить префикс ко всем ключам выбранного слайда (например, <code>s5_</code>).</li>
+            <li>Применить базовое имя к выбранной таблице — абзацы станут <code>&lt;basename&gt;_1</code>, <code>&lt;basename&gt;_2</code>, ...</li>
+            <li>Сбросить выделенные ключи обратно к авто-значению.</li>
+        </ul>
+        <p>Добавление строк в таблицу PPTX больше не сдвигает ключи: для ячеек таблицы они формируются как контентный хэш исходного текста.</p>
 
         <h3>Inline-форматирование (жирный / курсив)</h3>
         <p>Если в одном абзаце в PowerPoint смешаны обычный текст, жирный и курсив, в ячейке используется узкий markdown:</p>
@@ -297,7 +321,7 @@
         <p>Да. Пустые ячейки пропускаются.</p>
 
         <h3>Что точно нельзя менять?</h3>
-        <p>Не меняйте <code>key</code>. Текст в языковых колонках менять можно, новые языковые колонки добавлять можно.</p>
+        <p>Не меняйте <code>shapeName</code> и <code>slideNumber</code>. Колонку <code>key</code>, текст в языковых колонках и новые языковые колонки добавлять/править можно.</p>
     </div>
 
     <div class="footer">
